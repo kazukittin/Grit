@@ -7,6 +7,9 @@ import { DailyHabits } from '../components/DailyHabits';
 import { ContributionHeatmap } from '../components/ContributionHeatmap';
 import { RecordModal } from '../components/RecordModal';
 import { FloatingButton } from '../components/FloatingButton';
+import { TodayWorkout } from '../components/TodayWorkout';
+import { WorkoutModal } from '../components/WorkoutModal';
+import { RecentWorkouts } from '../components/RecentWorkouts';
 import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -20,8 +23,12 @@ import {
     getRecordedDaysCount,
     getHeatmapData,
     initializeDefaultHabits,
+    getWorkoutRoutineForDay,
+    getWorkoutLogForDate,
+    getWorkoutLogs,
+    addWorkoutLog,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog } from '../types';
 
 export function DashboardPage() {
     const { user } = useAuth();
@@ -35,6 +42,12 @@ export function DashboardPage() {
     const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
     const [level, setLevel] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Workout state
+    const [todayRoutine, setTodayRoutine] = useState<WorkoutRoutine | null>(null);
+    const [todayWorkoutLog, setTodayWorkoutLog] = useState<WorkoutLog | null>(null);
+    const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
+    const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -95,6 +108,17 @@ export function DashboardPage() {
                 today
             );
             setHeatmapData(heatmap);
+
+            // Load workout data
+            const dayOfWeek = new Date().getDay();
+            const [routine, workoutLog, workoutHistory] = await Promise.all([
+                getWorkoutRoutineForDay(user.$id, dayOfWeek),
+                getWorkoutLogForDate(user.$id, today),
+                getWorkoutLogs(user.$id, 5),
+            ]);
+            setTodayRoutine(routine);
+            setTodayWorkoutLog(workoutLog);
+            setRecentWorkouts(workoutHistory);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -136,6 +160,17 @@ export function DashboardPage() {
         }
         setIsModalOpen(false);
     }, [user, loadData]);
+
+    const handleSaveWorkout = useCallback(async (title: string, description: string, durationMin: number) => {
+        if (!user) return;
+
+        const newLog = await addWorkoutLog(user.$id, title, description, durationMin, today);
+        if (newLog) {
+            setTodayWorkoutLog(newLog);
+            setRecentWorkouts(prev => [newLog, ...prev.slice(0, 4)]);
+        }
+        setIsWorkoutModalOpen(false);
+    }, [user, today]);
 
     const weightDiff =
         latestLog && previousLog ? latestLog.weight - previousLog.weight : null;
@@ -188,11 +223,20 @@ export function DashboardPage() {
                     </div>
 
                     {/* 右側 (PCで2カラム = 40%) */}
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 space-y-6">
+                        <TodayWorkout
+                            routine={todayRoutine}
+                            todayLog={todayWorkoutLog}
+                            onComplete={handleSaveWorkout}
+                            onEdit={() => setIsWorkoutModalOpen(true)}
+                        />
+
                         <DailyHabits
                             habits={dailyHabits}
                             onToggle={handleToggleHabit}
                         />
+
+                        <RecentWorkouts logs={recentWorkouts} />
                     </div>
                 </div>
             </main>
@@ -203,6 +247,13 @@ export function DashboardPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSaveRecord}
+            />
+
+            <WorkoutModal
+                isOpen={isWorkoutModalOpen}
+                onClose={() => setIsWorkoutModalOpen(false)}
+                onSave={handleSaveWorkout}
+                routine={todayRoutine}
             />
         </div>
     );

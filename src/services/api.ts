@@ -1,6 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
-import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay } from '../types';
+import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog } from '../types';
 
 // Type helper for Appwrite documents
 function asProfile(doc: unknown): Profile {
@@ -460,3 +460,238 @@ export async function getHeatmapData(
         return [];
     }
 }
+
+// ============ Workout Routines API ============
+
+function asWorkoutRoutine(doc: unknown): WorkoutRoutine {
+    return doc as WorkoutRoutine;
+}
+
+function asWorkoutRoutineArray(docs: unknown[]): WorkoutRoutine[] {
+    return docs as WorkoutRoutine[];
+}
+
+function asWorkoutLog(doc: unknown): WorkoutLog {
+    return doc as WorkoutLog;
+}
+
+function asWorkoutLogArray(docs: unknown[]): WorkoutLog[] {
+    return docs as WorkoutLog[];
+}
+
+export async function getWorkoutRoutines(userId: string): Promise<WorkoutRoutine[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_ROUTINES,
+            [
+                Query.equal('user_id', userId),
+                Query.orderAsc('day_of_week'),
+            ]
+        );
+
+        return asWorkoutRoutineArray(response.documents);
+    } catch (error) {
+        console.error('Error fetching workout routines:', error);
+        return [];
+    }
+}
+
+export async function getWorkoutRoutineForDay(userId: string, dayOfWeek: number): Promise<WorkoutRoutine | null> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_ROUTINES,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('day_of_week', dayOfWeek),
+                Query.limit(1),
+            ]
+        );
+
+        if (response.documents.length > 0) {
+            return asWorkoutRoutine(response.documents[0]);
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching workout routine for day:', error);
+        return null;
+    }
+}
+
+export async function saveWorkoutRoutine(
+    userId: string,
+    dayOfWeek: number,
+    title: string,
+    description: string
+): Promise<WorkoutRoutine | null> {
+    try {
+        // Check if routine exists for this day
+        const existing = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_ROUTINES,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('day_of_week', dayOfWeek),
+                Query.limit(1),
+            ]
+        );
+
+        if (existing.documents.length > 0) {
+            // Update existing
+            const updated = await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTIONS.WORKOUT_ROUTINES,
+                existing.documents[0].$id,
+                { title, description }
+            );
+            return asWorkoutRoutine(updated);
+        } else {
+            // Create new
+            const created = await databases.createDocument(
+                DATABASE_ID,
+                COLLECTIONS.WORKOUT_ROUTINES,
+                ID.unique(),
+                {
+                    user_id: userId,
+                    day_of_week: dayOfWeek,
+                    title,
+                    description,
+                }
+            );
+            return asWorkoutRoutine(created);
+        }
+    } catch (error) {
+        console.error('Error saving workout routine:', error);
+        return null;
+    }
+}
+
+export async function deleteWorkoutRoutine(routineId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_ROUTINES,
+            routineId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting workout routine:', error);
+        return false;
+    }
+}
+
+// ============ Workout Logs API ============
+
+export async function getWorkoutLogs(userId: string, limit?: number): Promise<WorkoutLog[]> {
+    try {
+        const queries = [
+            Query.equal('user_id', userId),
+            Query.orderDesc('date'),
+        ];
+
+        if (limit) {
+            queries.push(Query.limit(limit));
+        }
+
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_LOGS,
+            queries
+        );
+
+        return asWorkoutLogArray(response.documents);
+    } catch (error) {
+        console.error('Error fetching workout logs:', error);
+        return [];
+    }
+}
+
+export async function getWorkoutLogForDate(userId: string, date: string): Promise<WorkoutLog | null> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_LOGS,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('date', date),
+                Query.limit(1),
+            ]
+        );
+
+        if (response.documents.length > 0) {
+            return asWorkoutLog(response.documents[0]);
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching workout log for date:', error);
+        return null;
+    }
+}
+
+export async function addWorkoutLog(
+    userId: string,
+    title: string,
+    description: string,
+    durationMin: number,
+    date?: string
+): Promise<WorkoutLog | null> {
+    const logDate = date || new Date().toISOString().split('T')[0];
+
+    try {
+        // Check if entry exists for this date
+        const existing = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_LOGS,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('date', logDate),
+                Query.limit(1),
+            ]
+        );
+
+        if (existing.documents.length > 0) {
+            // Update existing
+            const updated = await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTIONS.WORKOUT_LOGS,
+                existing.documents[0].$id,
+                { title, description, duration_min: durationMin }
+            );
+            return asWorkoutLog(updated);
+        } else {
+            // Create new
+            const created = await databases.createDocument(
+                DATABASE_ID,
+                COLLECTIONS.WORKOUT_LOGS,
+                ID.unique(),
+                {
+                    user_id: userId,
+                    date: logDate,
+                    title,
+                    description,
+                    duration_min: durationMin,
+                }
+            );
+            return asWorkoutLog(created);
+        }
+    } catch (error) {
+        console.error('Error adding/updating workout log:', error);
+        return null;
+    }
+}
+
+export async function deleteWorkoutLog(logId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.WORKOUT_LOGS,
+            logId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting workout log:', error);
+        return false;
+    }
+}
+

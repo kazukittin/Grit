@@ -26,6 +26,21 @@ export interface HabitLog extends Models.Document {
     completed: boolean;
 }
 
+export interface WorkoutRoutine extends Models.Document {
+    user_id: string;
+    day_of_week: number; // 0-6 (Sunday = 0)
+    title: string;
+    description: string;
+}
+
+export interface WorkoutLog extends Models.Document {
+    user_id: string;
+    date: string; // ISO date string
+    title: string;
+    description: string;
+    duration_min: number;
+}
+
 // Frontend Types
 export interface DailyHabitStatus {
     habit: Habit;
@@ -48,3 +63,8 @@ export interface UserStats {
     recordedDays: number;
     level: number;
 }
+
+// Day of week helpers
+export const DAY_NAMES = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'] as const;
+export const DAY_NAMES_SHORT = ['日', '月', '火', '水', '木', '金', '土'] as const;
+

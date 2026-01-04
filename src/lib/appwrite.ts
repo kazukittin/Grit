@@ -21,4 +21,7 @@ export const COLLECTIONS = {
     WEIGHT_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_WEIGHT_LOGS || 'weight_logs',
     HABITS: import.meta.env.VITE_APPWRITE_COLLECTION_HABITS || 'habits',
     HABIT_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_HABIT_LOGS || 'habit_logs',
+    WORKOUT_ROUTINES: import.meta.env.VITE_APPWRITE_COLLECTION_WORKOUT_ROUTINES || 'workout_routines',
+    WORKOUT_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_WORKOUT_LOGS || 'workout_logs',
 };
+

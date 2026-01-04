@@ -2,8 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getOrCreateProfile, updateProfile, getAllHabits, createHabit, updateHabit, deleteHabit } from '../services/api';
-import type { Profile, Habit } from '../types';
+import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
+import {
+    getOrCreateProfile,
+    updateProfile,
+    getAllHabits,
+    createHabit,
+    updateHabit,
+    deleteHabit,
+    getWorkoutRoutines,
+    saveWorkoutRoutine,
+    deleteWorkoutRoutine,
+} from '../services/api';
+import type { Profile, Habit, WorkoutRoutine } from '../types';
 
 export function SettingsPage() {
     const navigate = useNavigate();
@@ -11,6 +22,7 @@ export function SettingsPage() {
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [habits, setHabits] = useState<Habit[]>([]);
+    const [workoutRoutines, setWorkoutRoutines] = useState<WorkoutRoutine[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -24,12 +36,14 @@ export function SettingsPage() {
 
         const loadData = async () => {
             setLoading(true);
-            const [profileData, habitsData] = await Promise.all([
+            const [profileData, habitsData, routinesData] = await Promise.all([
                 getOrCreateProfile(user.$id),
                 getAllHabits(user.$id),
+                getWorkoutRoutines(user.$id),
             ]);
             setProfile(profileData);
             setHabits(habitsData);
+            setWorkoutRoutines(routinesData);
             if (profileData?.target_weight) {
                 setTargetWeight(profileData.target_weight.toString());
             }
@@ -93,6 +107,25 @@ export function SettingsPage() {
         await signOut();
         navigate('/');
     }, [signOut, navigate]);
+
+    const handleSaveWorkoutRoutine = useCallback(async (dayOfWeek: number, title: string, description: string) => {
+        if (!user) return;
+
+        const routine = await saveWorkoutRoutine(user.$id, dayOfWeek, title, description);
+        if (routine) {
+            setWorkoutRoutines(prev => {
+                const filtered = prev.filter(r => r.day_of_week !== dayOfWeek);
+                return [...filtered, routine].sort((a, b) => a.day_of_week - b.day_of_week);
+            });
+        }
+    }, [user]);
+
+    const handleDeleteWorkoutRoutine = useCallback(async (routineId: string) => {
+        const success = await deleteWorkoutRoutine(routineId);
+        if (success) {
+            setWorkoutRoutines(prev => prev.filter(r => r.$id !== routineId));
+        }
+    }, []);
 
     if (loading) {
         return (
@@ -209,8 +242,8 @@ export function SettingsPage() {
                                         <button
                                             onClick={() => handleToggleHabitActive(habit.$id, habit.is_active)}
                                             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${habit.is_active
-                                                    ? 'bg-grit-accent border-grit-accent text-white'
-                                                    : 'border-grit-text-dim'
+                                                ? 'bg-grit-accent border-grit-accent text-white'
+                                                : 'border-grit-text-dim'
                                                 }`}
                                         >
                                             {habit.is_active && <Check className="w-3 h-3" />}
@@ -236,6 +269,13 @@ export function SettingsPage() {
                         ))}
                     </div>
                 </section>
+
+                {/* Workout Schedule Settings */}
+                <WorkoutScheduleSettings
+                    routines={workoutRoutines}
+                    onSave={handleSaveWorkoutRoutine}
+                    onDelete={handleDeleteWorkoutRoutine}
+                />
 
                 {/* Sign Out */}
                 <button
