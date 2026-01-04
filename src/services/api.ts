@@ -1,6 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
-import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog } from '../types';
+import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType } from '../types';
 
 // Type helper for Appwrite documents
 function asProfile(doc: unknown): Profile {
@@ -691,6 +691,96 @@ export async function deleteWorkoutLog(logId: string): Promise<boolean> {
         return true;
     } catch (error) {
         console.error('Error deleting workout log:', error);
+        return false;
+    }
+}
+
+// ============ Meal Logs API ============
+
+function asMealLog(doc: unknown): MealLog {
+    return doc as MealLog;
+}
+
+function asMealLogArray(docs: unknown[]): MealLog[] {
+    return docs as MealLog[];
+}
+
+export async function getMealLogsForDate(userId: string, date: string): Promise<MealLog[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_LOGS,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('date', date),
+                Query.orderAsc('$createdAt'),
+            ]
+        );
+
+        return asMealLogArray(response.documents);
+    } catch (error) {
+        console.error('Error fetching meal logs:', error);
+        return [];
+    }
+}
+
+export async function addMealLog(
+    userId: string,
+    mealType: MealType,
+    foodName: string,
+    calories: number,
+    date?: string
+): Promise<MealLog | null> {
+    const logDate = date || new Date().toISOString().split('T')[0];
+
+    try {
+        const created = await databases.createDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_LOGS,
+            ID.unique(),
+            {
+                user_id: userId,
+                date: logDate,
+                meal_type: mealType,
+                food_name: foodName,
+                calories: calories || 0,
+            }
+        );
+        return asMealLog(created);
+    } catch (error) {
+        console.error('Error adding meal log:', error);
+        return null;
+    }
+}
+
+export async function updateMealLog(
+    logId: string,
+    updates: { food_name?: string; calories?: number }
+): Promise<MealLog | null> {
+    try {
+        const updated = await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_LOGS,
+            logId,
+            updates
+        );
+        return asMealLog(updated);
+    } catch (error) {
+        console.error('Error updating meal log:', error);
+        return null;
+    }
+}
+
+export async function deleteMealLog(logId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_LOGS,
+            logId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting meal log:', error);
         return false;
     }
 }

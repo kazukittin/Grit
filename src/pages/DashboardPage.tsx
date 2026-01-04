@@ -10,6 +10,8 @@ import { FloatingButton } from '../components/FloatingButton';
 import { TodayWorkout } from '../components/TodayWorkout';
 import { WorkoutModal } from '../components/WorkoutModal';
 import { RecentWorkouts } from '../components/RecentWorkouts';
+import { TodayMeals } from '../components/TodayMeals';
+import { MealModal } from '../components/MealModal';
 import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -27,8 +29,12 @@ import {
     getWorkoutLogForDate,
     getWorkoutLogs,
     addWorkoutLog,
+    getMealLogsForDate,
+    addMealLog,
+    updateMealLog,
+    deleteMealLog,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType } from '../types';
 
 export function DashboardPage() {
     const { user } = useAuth();
@@ -48,6 +54,12 @@ export function DashboardPage() {
     const [todayWorkoutLog, setTodayWorkoutLog] = useState<WorkoutLog | null>(null);
     const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
     const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
+
+    // Meal state
+    const [todayMeals, setTodayMeals] = useState<MealLog[]>([]);
+    const [isMealModalOpen, setIsMealModalOpen] = useState(false);
+    const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
+    const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -119,6 +131,10 @@ export function DashboardPage() {
             setTodayRoutine(routine);
             setTodayWorkoutLog(workoutLog);
             setRecentWorkouts(workoutHistory);
+
+            // Load meal data
+            const mealLogs = await getMealLogsForDate(user.$id, today);
+            setTodayMeals(mealLogs);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -171,6 +187,44 @@ export function DashboardPage() {
         }
         setIsWorkoutModalOpen(false);
     }, [user, today]);
+
+    // Meal handlers
+    const handleAddMeal = useCallback((mealType: MealType) => {
+        setSelectedMealType(mealType);
+        setEditingMeal(null);
+        setIsMealModalOpen(true);
+    }, []);
+
+    const handleEditMeal = useCallback((meal: MealLog) => {
+        setEditingMeal(meal);
+        setIsMealModalOpen(true);
+    }, []);
+
+    const handleSaveMeal = useCallback(async (foodName: string, calories: number, mealType: MealType) => {
+        if (!user) return;
+
+        const newMeal = await addMealLog(user.$id, mealType, foodName, calories, today);
+        if (newMeal) {
+            setTodayMeals(prev => [...prev, newMeal]);
+        }
+        setIsMealModalOpen(false);
+    }, [user, today]);
+
+    const handleUpdateMeal = useCallback(async (logId: string, foodName: string, calories: number) => {
+        const updated = await updateMealLog(logId, { food_name: foodName, calories });
+        if (updated) {
+            setTodayMeals(prev => prev.map(m => m.$id === logId ? updated : m));
+        }
+        setIsMealModalOpen(false);
+        setEditingMeal(null);
+    }, []);
+
+    const handleDeleteMeal = useCallback(async (mealId: string) => {
+        const success = await deleteMealLog(mealId);
+        if (success) {
+            setTodayMeals(prev => prev.filter(m => m.$id !== mealId));
+        }
+    }, []);
 
     const weightDiff =
         latestLog && previousLog ? latestLog.weight - previousLog.weight : null;
@@ -236,6 +290,13 @@ export function DashboardPage() {
                             onToggle={handleToggleHabit}
                         />
 
+                        <TodayMeals
+                            meals={todayMeals}
+                            onAddMeal={handleAddMeal}
+                            onEditMeal={handleEditMeal}
+                            onDeleteMeal={handleDeleteMeal}
+                        />
+
                         <RecentWorkouts logs={recentWorkouts} />
                     </div>
                 </div>
@@ -254,6 +315,18 @@ export function DashboardPage() {
                 onClose={() => setIsWorkoutModalOpen(false)}
                 onSave={handleSaveWorkout}
                 routine={todayRoutine}
+            />
+
+            <MealModal
+                isOpen={isMealModalOpen}
+                onClose={() => {
+                    setIsMealModalOpen(false);
+                    setEditingMeal(null);
+                }}
+                onSave={handleSaveMeal}
+                onUpdate={handleUpdateMeal}
+                initialMealType={selectedMealType}
+                editingMeal={editingMeal}
             />
         </div>
     );

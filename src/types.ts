@@ -41,6 +41,14 @@ export interface WorkoutLog extends Models.Document {
     duration_min: number;
 }
 
+export interface MealLog extends Models.Document {
+    user_id: string;
+    date: string; // ISO date string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    food_name: string;
+    calories: number;
+}
+
 // Frontend Types
 export interface DailyHabitStatus {
     habit: Habit;
@@ -67,4 +75,14 @@ export interface UserStats {
 // Day of week helpers
 export const DAY_NAMES = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'] as const;
 export const DAY_NAMES_SHORT = ['日', '月', '火', '水', '木', '金', '土'] as const;
+
+// Meal type helpers
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export const MEAL_TYPES: { type: MealType; label: string; icon: 'sunrise' | 'sun' | 'sunset' | 'cookie' }[] = [
+    { type: 'breakfast', label: '朝食', icon: 'sunrise' },
+    { type: 'lunch', label: '昼食', icon: 'sun' },
+    { type: 'dinner', label: '夕食', icon: 'sunset' },
+    { type: 'snack', label: '間食', icon: 'cookie' },
+];
+
 
