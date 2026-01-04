@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --color-grit-accent: #f97316;
+  --color-grit-accent-dark: #ea580c;
+  --color-grit-bg: #0a0a0a;
+  --color-grit-surface: #141414;
+  --color-grit-surface-hover: #1f1f1f;
+  --color-grit-border: #262626;
+  --color-grit-text: #fafafa;
+  --color-grit-text-muted: #a3a3a3;
+  --color-grit-text-dim: #737373;
+  --color-grit-success: #22c55e;
+  --color-grit-positive: #22c55e;
+  --color-grit-negative: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-grit-bg);
+  color: var(--color-grit-text);
+  font-family: var(--font-family-sans);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-grit-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-grit-text-dim);
+}
+
+/* Animations */
+@keyframes check-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-check-pulse {
+  animation: check-pulse 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
