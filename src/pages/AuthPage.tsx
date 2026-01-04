@@ -1,179 +1,126 @@
-import { useState, useCallback } from 'react';
-import { LogIn, UserPlus, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useCallback, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import { account } from '../lib/appwrite';
+import { OAuthProvider } from 'appwrite';
 
 export function AuthPage() {
-    const [isSignUp, setIsSignUp] = useState(false);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
 
-    const { signIn, signUp } = useAuth();
+    // Check for OAuth error in URL params
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        if (errorParam) {
+            setError('ログインに失敗しました。もう一度お試しください。');
+            // Clean up URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
 
-    const handleSubmit = useCallback(async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleGoogleLogin = useCallback(async () => {
         setError('');
-        setSuccessMessage('');
-
-        if (!email || !password) {
-            setError('メールアドレスとパスワードを入力してください');
-            return;
-        }
-
-        if (isSignUp && password !== confirmPassword) {
-            setError('パスワードが一致しません');
-            return;
-        }
-
-        if (password.length < 6) {
-            setError('パスワードは6文字以上で入力してください');
-            return;
-        }
-
         setLoading(true);
 
         try {
-            if (isSignUp) {
-                const { error } = await signUp(email, password);
-                if (error) {
-                    setError(error.message);
-                } else {
-                    setSuccessMessage('確認メールを送信しました。メールを確認してアカウントを有効化してください。');
-                }
-            } else {
-                const { error } = await signIn(email, password);
-                if (error) {
-                    setError('メールアドレスまたはパスワードが正しくありません');
-                }
-            }
-        } catch {
-            setError('エラーが発生しました。もう一度お試しください。');
-        } finally {
+            // Get current URL for success/failure redirects
+            const currentUrl = window.location.origin;
+
+            account.createOAuth2Session(
+                OAuthProvider.Google,
+                `${currentUrl}/`,           // Success URL - redirect to dashboard
+                `${currentUrl}/auth?error=1` // Failure URL - back to auth with error
+            );
+        } catch (err) {
+            console.error('Google login error:', err);
+            setError('認証の開始に失敗しました。もう一度お試しください。');
             setLoading(false);
         }
-    }, [email, password, confirmPassword, isSignUp, signIn, signUp]);
+    }, []);
 
     return (
-        <div className="min-h-screen bg-grit-bg flex flex-col items-center justify-center px-4">
-            {/* Logo */}
-            <div className="mb-8 text-center">
-                <h1 className="text-5xl font-bold text-grit-text tracking-tight mb-2">Grit</h1>
-                <p className="text-grit-text-muted">体重管理 × 習慣化</p>
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+            {/* Logo & Title */}
+            <div className="mb-10 text-center">
+                <h1 className="text-5xl font-bold text-slate-900 tracking-tight mb-3">Grit</h1>
+                <p className="text-lg text-slate-500">シンプルに記録、確実に継続。</p>
             </div>
 
             {/* Auth Card */}
-            <div className="w-full max-w-md bg-grit-surface border border-grit-border rounded-2xl p-8">
-                {/* Tabs */}
-                <div className="flex mb-8 bg-grit-bg rounded-xl p-1">
-                    <button
-                        onClick={() => { setIsSignUp(false); setError(''); setSuccessMessage(''); }}
-                        className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2
-              ${!isSignUp ? 'bg-grit-surface text-grit-text shadow' : 'text-grit-text-muted hover:text-grit-text'}`}
-                    >
-                        <LogIn className="w-4 h-4" />
-                        ログイン
-                    </button>
-                    <button
-                        onClick={() => { setIsSignUp(true); setError(''); setSuccessMessage(''); }}
-                        className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2
-              ${isSignUp ? 'bg-grit-surface text-grit-text shadow' : 'text-grit-text-muted hover:text-grit-text'}`}
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        新規登録
-                    </button>
-                </div>
-
+            <div className="w-full max-w-sm">
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-grit-negative/10 border border-grit-negative/30 flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-grit-negative flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-grit-negative">{error}</p>
+                    <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200">
+                        <p className="text-sm text-red-600 text-center">{error}</p>
                     </div>
                 )}
 
-                {/* Success Message */}
-                {successMessage && (
-                    <div className="mb-4 p-3 rounded-xl bg-grit-positive/10 border border-grit-positive/30">
-                        <p className="text-sm text-grit-positive">{successMessage}</p>
-                    </div>
-                )}
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
-                            <Mail className="w-4 h-4" />
-                            メールアドレス
-                        </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="example@email.com"
-                            className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
-                            autoComplete="email"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
-                            <Lock className="w-4 h-4" />
-                            パスワード
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="6文字以上"
-                            className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
-                            autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                        />
-                    </div>
-
-                    {isSignUp && (
-                        <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
-                                <Lock className="w-4 h-4" />
-                                パスワード（確認）
-                            </label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="もう一度入力"
-                                className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
-                                autoComplete="new-password"
-                            />
-                        </div>
+                {/* Google Login Button */}
+                <button
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full py-4 px-6 bg-white border-2 border-slate-200 text-slate-700 font-medium rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                    {loading ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+                    ) : (
+                        <>
+                            {/* Google "G" Logo */}
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                    fill="#4285F4"
+                                />
+                                <path
+                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                    fill="#34A853"
+                                />
+                                <path
+                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                    fill="#FBBC05"
+                                />
+                                <path
+                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                    fill="#EA4335"
+                                />
+                            </svg>
+                            <span>Googleで続ける</span>
+                        </>
                     )}
+                </button>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-4 bg-gradient-to-r from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : isSignUp ? (
-                            <>
-                                <UserPlus className="w-5 h-5" />
-                                アカウント作成
-                            </>
-                        ) : (
-                            <>
-                                <LogIn className="w-5 h-5" />
-                                ログイン
-                            </>
-                        )}
-                    </button>
-                </form>
+                {/* Divider */}
+                <div className="my-8 flex items-center">
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                    <span className="px-4 text-sm text-slate-400">または</span>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <span className="text-blue-600 text-sm">📊</span>
+                        </div>
+                        <span className="text-sm">体重を記録して推移を可視化</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <span className="text-blue-600 text-sm">✅</span>
+                        </div>
+                        <span className="text-sm">日々の習慣をトラッキング</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <span className="text-blue-600 text-sm">🎯</span>
+                        </div>
+                        <span className="text-sm">目標に向かって継続をサポート</span>
+                    </div>
+                </div>
             </div>
 
             {/* Footer */}
-            <p className="mt-8 text-sm text-grit-text-dim">
+            <p className="mt-12 text-sm text-slate-400">
                 継続は力なり。今日から始めよう。
             </p>
         </div>

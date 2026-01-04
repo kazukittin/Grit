@@ -6,7 +6,7 @@ import { DailyHabits } from '../components/DailyHabits';
 import { ContributionHeatmap } from '../components/ContributionHeatmap';
 import { RecordModal } from '../components/RecordModal';
 import { FloatingButton } from '../components/FloatingButton';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getOrCreateProfile,
@@ -148,27 +148,47 @@ export function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-grit-bg pb-24">
+        <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
             <Header level={level} />
 
-            <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
-                <SummaryCard
-                    latestWeight={latestLog?.weight ?? null}
-                    weightDiff={weightDiff}
-                    targetWeight={profile?.target_weight ?? null}
-                />
+            <main className="max-w-5xl mx-auto px-4 py-6">
+                {/* PC用: 「＋ 今日の記録」ボタン */}
+                <div className="hidden md:flex justify-end mb-6">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-105 active:scale-95 transition-transform"
+                    >
+                        <Plus className="w-5 h-5" strokeWidth={2.5} />
+                        今日の記録
+                    </button>
+                </div>
 
-                <WeeklyChart
-                    logs={weeklyLogs}
-                    targetWeight={profile?.target_weight}
-                />
+                {/* レスポンシブグリッド: スマホは縦一列、PCは2カラム */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                    {/* 左側 (PCで3カラム = 60%) */}
+                    <div className="md:col-span-3 space-y-6">
+                        <SummaryCard
+                            latestWeight={latestLog?.weight ?? null}
+                            weightDiff={weightDiff}
+                            targetWeight={profile?.target_weight ?? null}
+                        />
 
-                <ContributionHeatmap data={heatmapData} months={3} />
+                        <WeeklyChart
+                            logs={weeklyLogs}
+                            targetWeight={profile?.target_weight}
+                        />
 
-                <DailyHabits
-                    habits={dailyHabits}
-                    onToggle={handleToggleHabit}
-                />
+                        <ContributionHeatmap data={heatmapData} months={3} />
+                    </div>
+
+                    {/* 右側 (PCで2カラム = 40%) */}
+                    <div className="md:col-span-2">
+                        <DailyHabits
+                            habits={dailyHabits}
+                            onToggle={handleToggleHabit}
+                        />
+                    </div>
+                </div>
             </main>
 
             <FloatingButton onClick={() => setIsModalOpen(true)} />
