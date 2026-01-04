@@ -1,12 +1,13 @@
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import type { WeightLog } from '../types';
 
 interface WeeklyChartProps {
     logs: WeightLog[];
+    targetWeight?: number | null;
 }
 
-export const WeeklyChart = ({ logs }: WeeklyChartProps) => {
+export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
     const chartData = logs.map(log => ({
         date: new Date(log.date).toLocaleDateString('ja-JP', {
             month: 'numeric',
@@ -17,6 +18,7 @@ export const WeeklyChart = ({ logs }: WeeklyChartProps) => {
 
     // Calculate min/max for better chart scaling
     const weights = logs.map(l => l.weight);
+    if (targetWeight) weights.push(targetWeight);
     const minWeight = weights.length > 0 ? Math.floor(Math.min(...weights) - 1) : 0;
     const maxWeight = weights.length > 0 ? Math.ceil(Math.max(...weights) + 1) : 100;
 
@@ -63,6 +65,23 @@ export const WeeklyChart = ({ logs }: WeeklyChartProps) => {
                                 tickFormatter={(value) => `${value}`}
                             />
                             <Tooltip content={<CustomTooltip />} />
+
+                            {/* Target weight line */}
+                            {targetWeight && (
+                                <ReferenceLine
+                                    y={targetWeight}
+                                    stroke="#ef4444"
+                                    strokeDasharray="5 5"
+                                    strokeWidth={2}
+                                    label={{
+                                        value: '目標',
+                                        position: 'right',
+                                        fill: '#ef4444',
+                                        fontSize: 12,
+                                    }}
+                                />
+                            )}
+
                             <Line
                                 type="monotone"
                                 dataKey="weight"

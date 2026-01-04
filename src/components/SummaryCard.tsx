@@ -1,11 +1,12 @@
-import { TrendingDown, TrendingUp, Minus, Scale } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus, Scale, Target } from 'lucide-react';
 
 interface SummaryCardProps {
     latestWeight: number | null;
     weightDiff: number | null;
+    targetWeight: number | null;
 }
 
-export const SummaryCard = ({ latestWeight, weightDiff }: SummaryCardProps) => {
+export const SummaryCard = ({ latestWeight, weightDiff, targetWeight }: SummaryCardProps) => {
     const getDiffDisplay = () => {
         if (weightDiff === null) return null;
 
@@ -35,10 +36,18 @@ export const SummaryCard = ({ latestWeight, weightDiff }: SummaryCardProps) => {
         }
     };
 
+    const getTargetDiff = () => {
+        if (latestWeight === null || targetWeight === null) return null;
+        const diff = latestWeight - targetWeight;
+        return diff;
+    };
+
+    const targetDiff = getTargetDiff();
+
     return (
         <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
             <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                     <p className="text-sm text-grit-text-muted mb-2">最新の体重</p>
                     {latestWeight !== null ? (
                         <>
@@ -63,6 +72,25 @@ export const SummaryCard = ({ latestWeight, weightDiff }: SummaryCardProps) => {
                     <Scale className="w-7 h-7 text-grit-accent" />
                 </div>
             </div>
+
+            {/* Target weight display */}
+            {targetWeight !== null && targetDiff !== null && (
+                <div className="mt-4 pt-4 border-t border-grit-border">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-grit-text-muted">
+                            <Target className="w-4 h-4" />
+                            <span className="text-sm">目標: {targetWeight.toFixed(1)}kg</span>
+                        </div>
+                        <div className={`text-sm font-semibold ${targetDiff <= 0 ? 'text-grit-positive' : 'text-grit-accent'}`}>
+                            {targetDiff <= 0 ? (
+                                '🎉 目標達成！'
+                            ) : (
+                                `あと ${targetDiff.toFixed(1)}kg`
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
