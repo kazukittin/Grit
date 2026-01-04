@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Check, Circle, Zap } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import type { DailyHabitStatus } from '../types';
 
 interface DailyHabitsProps {
@@ -69,6 +70,53 @@ export const DailyHabits = ({ habits, onToggle }: DailyHabitsProps) => {
     const completedCount = habits.filter(h => h.completed).length;
     const totalCount = habits.length;
     const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+    // Track if confetti has already fired for this "all complete" state
+    const confettiFiredRef = useRef(false);
+    const prevCompletedCountRef = useRef(completedCount);
+
+    useEffect(() => {
+        const allComplete = totalCount > 0 && completedCount === totalCount;
+        const justCompleted = completedCount > prevCompletedCountRef.current;
+
+        // Fire confetti only when user just completed the last task
+        if (allComplete && justCompleted && !confettiFiredRef.current) {
+            confettiFiredRef.current = true;
+
+            // Fire confetti with celebratory colors
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#f97316', '#ea580c', '#22c55e', '#fbbf24', '#ef4444'],
+            });
+
+            // Second burst for extra celebration
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#f97316', '#ea580c', '#22c55e'],
+                });
+                confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#f97316', '#ea580c', '#22c55e'],
+                });
+            }, 200);
+        }
+
+        // Reset confetti flag when tasks become incomplete
+        if (!allComplete) {
+            confettiFiredRef.current = false;
+        }
+
+        prevCompletedCountRef.current = completedCount;
+    }, [completedCount, totalCount]);
 
     return (
         <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">

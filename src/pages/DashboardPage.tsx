@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Header } from '../components/Header';
 import { SummaryCard } from '../components/SummaryCard';
 import { WeeklyChart } from '../components/WeeklyChart';
+import { WeeklyReport } from '../components/WeeklyReport';
 import { DailyHabits } from '../components/DailyHabits';
 import { ContributionHeatmap } from '../components/ContributionHeatmap';
 import { RecordModal } from '../components/RecordModal';
@@ -176,6 +177,11 @@ export function DashboardPage() {
                         <WeeklyChart
                             logs={weeklyLogs}
                             targetWeight={profile?.target_weight}
+                        />
+
+                        <WeeklyReport
+                            logs={weeklyLogs}
+                            habits={dailyHabits}
                         />
 
                         <ContributionHeatmap data={heatmapData} months={3} />

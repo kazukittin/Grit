@@ -1,5 +1,6 @@
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import type { WeightLog } from '../types';
 
 interface WeeklyChartProps {
@@ -8,6 +9,12 @@ interface WeeklyChartProps {
 }
 
 export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
+    const { theme } = useTheme();
+
+    // Theme-aware colors
+    const tickColor = theme === 'dark' ? '#737373' : '#64748b';
+    const dotStrokeColor = theme === 'dark' ? '#0a0a0a' : '#ffffff';
+
     const chartData = logs.map(log => ({
         date: new Date(log.date).toLocaleDateString('ja-JP', {
             month: 'numeric',
@@ -53,14 +60,14 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                                 dataKey="date"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#737373', fontSize: 12 }}
+                                tick={{ fill: tickColor, fontSize: 12 }}
                                 dy={10}
                             />
                             <YAxis
                                 domain={[minWeight, maxWeight]}
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#737373', fontSize: 12 }}
+                                tick={{ fill: tickColor, fontSize: 12 }}
                                 dx={-5}
                                 tickFormatter={(value) => `${value}`}
                             />
@@ -89,7 +96,7 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                                 strokeWidth={3}
                                 dot={{
                                     fill: '#f97316',
-                                    stroke: '#0a0a0a',
+                                    stroke: dotStrokeColor,
                                     strokeWidth: 2,
                                     r: 5,
                                 }}
@@ -111,3 +118,4 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
         </div>
     );
 };
+

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Settings } from 'lucide-react';
+import { Trophy, Settings, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface HeaderProps {
     level: number;
@@ -7,6 +8,7 @@ interface HeaderProps {
 
 export const Header = ({ level }: HeaderProps) => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
 
     return (
         <header className="sticky top-0 z-40 bg-grit-bg/80 backdrop-blur-xl border-b border-grit-border">
@@ -21,6 +23,17 @@ export const Header = ({ level }: HeaderProps) => {
                             Lv.{level}
                         </span>
                     </div>
+                    <button
+                        onClick={toggleTheme}
+                        className="w-9 h-9 rounded-full bg-grit-surface border border-grit-border flex items-center justify-center hover:bg-grit-surface-hover transition-colors"
+                        aria-label={theme === 'light' ? 'ダークモードに切り替え' : 'ライトモードに切り替え'}
+                    >
+                        {theme === 'light' ? (
+                            <Moon className="w-4 h-4 text-grit-text-muted" />
+                        ) : (
+                            <Sun className="w-4 h-4 text-grit-accent" />
+                        )}
+                    </button>
                     <button
                         onClick={() => navigate('/settings')}
                         className="w-9 h-9 rounded-full bg-grit-surface border border-grit-border flex items-center justify-center hover:bg-grit-surface-hover transition-colors"
