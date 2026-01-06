@@ -1,11 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { account } from '../lib/appwrite';
-import { OAuthProvider } from 'appwrite';
+import { OAuthProvider, ID } from 'appwrite';
 
 export function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [mode, setMode] = useState<'login' | 'signup'>('login');
+
+    // Form state
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
 
     // Check for OAuth error in URL params
     useEffect(() => {
@@ -13,7 +19,6 @@ export function AuthPage() {
         const errorParam = urlParams.get('error');
         if (errorParam) {
             setError('ログインに失敗しました。もう一度お試しください。');
-            // Clean up URL
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, []);
@@ -23,16 +28,14 @@ export function AuthPage() {
         setLoading(true);
 
         try {
-            // Get current URL for success/failure redirects
-            // Use the current pathname base for proper routing on GitHub Pages
             const currentUrl = window.location.origin;
             const basePath = import.meta.env.BASE_URL || '/';
-            const baseUrl = `${currentUrl}${basePath}`.replace(/\/$/, ''); // Remove trailing slash
+            const baseUrl = `${currentUrl}${basePath}`.replace(/\/$/, '');
 
             account.createOAuth2Session(
                 OAuthProvider.Google,
-                `${baseUrl}/`,           // Success URL - redirect to dashboard
-                `${baseUrl}/auth?error=1` // Failure URL - back to auth with error
+                `${baseUrl}/`,
+                `${baseUrl}/auth?error=1`
             );
         } catch (err) {
             console.error('Google login error:', err);
@@ -41,12 +44,44 @@ export function AuthPage() {
         }
     }, []);
 
+    const handleEmailAuth = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            if (mode === 'signup') {
+                // Create user account
+                await account.create(ID.unique(), email, password, name);
+                // Create session
+                await account.createEmailPasswordSession(email, password);
+            } else {
+                // Login
+                await account.createEmailPasswordSession(email, password);
+            }
+            // Page reload or redirect will happen automatically via AuthContext
+            window.location.reload();
+        } catch (err: any) {
+            console.error('Auth error:', err);
+            if (err?.code === 409) {
+                setError('このメールアドレスは既に登録されています。');
+            } else if (err?.code === 401) {
+                setError('メールアドレスまたはパスワードが間違っています。');
+            } else if (err?.message) {
+                setError(err.message);
+            } else {
+                setError('認証に失敗しました。もう一度お試しください。');
+            }
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-8">
             {/* Logo & Title */}
-            <div className="mb-10 text-center">
-                <h1 className="text-5xl font-bold text-slate-900 tracking-tight mb-3">Grit</h1>
-                <p className="text-lg text-slate-500">シンプルに記録、確実に継続。</p>
+            <div className="mb-8 text-center">
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight mb-2">Grit</h1>
+                <p className="text-base text-slate-500">シンプルに記録、確実に継続。</p>
             </div>
 
             {/* Auth Card */}
@@ -58,18 +93,110 @@ export function AuthPage() {
                     </div>
                 )}
 
+                {/* Main Auth Form */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+                    {/* Tabs */}
+                    <div className="flex border-b border-slate-200">
+                        <button
+                            onClick={() => setMode('login')}
+                            className={`flex-1 py-3 text-sm font-medium transition-colors ${mode === 'login'
+                                ? 'bg-slate-50 text-slate-900 border-b-2 border-slate-900'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            ログイン
+                        </button>
+                        <button
+                            onClick={() => setMode('signup')}
+                            className={`flex-1 py-3 text-sm font-medium transition-colors ${mode === 'signup'
+                                ? 'bg-slate-50 text-slate-900 border-b-2 border-slate-900'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            新規登録
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        <form onSubmit={handleEmailAuth} className="space-y-4">
+                            {mode === 'signup' && (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">お名前</label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            required
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            placeholder="山田 太郎"
+                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">メールアドレス</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="hello@example.com"
+                                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">パスワード</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={8}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="8文字以上"
+                                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-2.5 bg-slate-900 text-white font-medium rounded-lg hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                            >
+                                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {mode === 'login' ? 'ログイン' : 'アカウント作成'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="mb-6 flex items-center">
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                    <span className="px-4 text-xs text-slate-400">または</span>
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                </div>
+
                 {/* Google Login Button */}
                 <button
                     onClick={handleGoogleLogin}
                     disabled={loading}
-                    className="w-full py-4 px-6 bg-white border-2 border-slate-200 text-slate-700 font-medium rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    className="w-full py-2.5 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm"
                 >
                     {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
                     ) : (
                         <>
-                            {/* Google "G" Logo */}
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                     fill="#4285F4"
@@ -91,40 +218,11 @@ export function AuthPage() {
                         </>
                     )}
                 </button>
-
-                {/* Divider */}
-                <div className="my-8 flex items-center">
-                    <div className="flex-1 h-px bg-slate-200"></div>
-                    <span className="px-4 text-sm text-slate-400">または</span>
-                    <div className="flex-1 h-px bg-slate-200"></div>
-                </div>
-
-                {/* Features */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-slate-600">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                            <span className="text-blue-600 text-sm">📊</span>
-                        </div>
-                        <span className="text-sm">体重を記録して推移を可視化</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-slate-600">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                            <span className="text-blue-600 text-sm">✅</span>
-                        </div>
-                        <span className="text-sm">日々の習慣をトラッキング</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-slate-600">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                            <span className="text-blue-600 text-sm">🎯</span>
-                        </div>
-                        <span className="text-sm">目標に向かって継続をサポート</span>
-                    </div>
-                </div>
             </div>
 
-            {/* Footer */}
-            <p className="mt-12 text-sm text-slate-400">
-                継続は力なり。今日から始めよう。
+            {/* Features Link - Simplified for mobile */}
+            <p className="mt-8 text-xs text-slate-400">
+                継続は力なり。
             </p>
         </div>
     );
