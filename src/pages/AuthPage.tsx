@@ -24,12 +24,15 @@ export function AuthPage() {
 
         try {
             // Get current URL for success/failure redirects
+            // Use the current pathname base for proper routing on GitHub Pages
             const currentUrl = window.location.origin;
+            const basePath = import.meta.env.BASE_URL || '/';
+            const baseUrl = `${currentUrl}${basePath}`.replace(/\/$/, ''); // Remove trailing slash
 
             account.createOAuth2Session(
                 OAuthProvider.Google,
-                `${currentUrl}/`,           // Success URL - redirect to dashboard
-                `${currentUrl}/auth?error=1` // Failure URL - back to auth with error
+                `${baseUrl}/`,           // Success URL - redirect to dashboard
+                `${baseUrl}/auth?error=1` // Failure URL - back to auth with error
             );
         } catch (err) {
             console.error('Google login error:', err);
