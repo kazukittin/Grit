@@ -69,7 +69,7 @@ export const MealModal = ({
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-md bg-grit-surface rounded-t-3xl sm:rounded-2xl border border-grit-border shadow-xl animate-slide-up">
+            <div className="relative w-full max-w-md bg-grit-surface dark:glass-card rounded-t-3xl sm:rounded-2xl border border-grit-border dark:border-grit-glass-border shadow-xl animate-slide-up backdrop-blur-2xl">
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
@@ -101,8 +101,8 @@ export const MealModal = ({
                                             type="button"
                                             onClick={() => setMealType(type)}
                                             className={`px-3 py-2 text-sm rounded-xl border transition-colors ${mealType === type
-                                                    ? 'bg-grit-accent text-white border-grit-accent'
-                                                    : 'bg-grit-bg text-grit-text-muted border-grit-border hover:border-grit-accent'
+                                                ? 'bg-grit-accent text-white border-grit-accent'
+                                                : 'bg-grit-bg text-grit-text-muted border-grit-border hover:border-grit-accent'
                                                 }`}
                                         >
                                             {label}

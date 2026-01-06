@@ -45,19 +45,19 @@ export const SummaryCard = ({ latestWeight, weightDiff, targetWeight }: SummaryC
     const targetDiff = getTargetDiff();
 
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-8 border border-grit-border animate-fade-in backdrop-blur-xl">
             <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <p className="text-sm text-grit-text-muted mb-2">最新の体重</p>
+                    <p className="text-sm text-grit-text-muted mb-3">最新の体重</p>
                     {latestWeight !== null ? (
                         <>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-5xl font-bold text-grit-text tracking-tight">
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-6xl md:text-7xl font-bold text-grit-text tracking-tighter">
                                     {latestWeight.toFixed(1)}
                                 </span>
-                                <span className="text-xl text-grit-text-muted">kg</span>
+                                <span className="text-2xl text-grit-text-muted font-light">kg</span>
                             </div>
-                            <div className="mt-3">
+                            <div className="mt-4">
                                 {getDiffDisplay()}
                             </div>
                         </>
@@ -68,8 +68,8 @@ export const SummaryCard = ({ latestWeight, weightDiff, targetWeight }: SummaryC
                         </div>
                     )}
                 </div>
-                <div className="w-14 h-14 rounded-full bg-grit-accent/10 flex items-center justify-center">
-                    <Scale className="w-7 h-7 text-grit-accent" />
+                <div className="w-16 h-16 rounded-full bg-grit-accent/15 dark:bg-grit-accent/20 flex items-center justify-center dark:glow-accent">
+                    <Scale className="w-8 h-8 text-grit-accent" />
                 </div>
             </div>
 

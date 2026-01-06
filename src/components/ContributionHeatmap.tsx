@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Calendar } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import type { HeatmapDay } from '../types';
 
 interface ContributionHeatmapProps {
@@ -7,17 +8,15 @@ interface ContributionHeatmapProps {
     months?: number;
 }
 
-const LEVEL_COLORS = [
-    'bg-grit-border',           // Level 0 - no activity
-    'bg-grit-accent/20',        // Level 1
-    'bg-grit-accent/40',        // Level 2
-    'bg-grit-accent/70',        // Level 3
-    'bg-grit-accent',           // Level 4 - max activity
-];
-
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 export function ContributionHeatmap({ data, months = 3 }: ContributionHeatmapProps) {
+    const { theme } = useTheme();
+
+    // GitHub-style green heatmap colors
+    const LEVEL_COLORS = theme === 'dark'
+        ? ['bg-grit-heatmap-0', 'bg-grit-heatmap-1', 'bg-grit-heatmap-2', 'bg-grit-heatmap-3', 'bg-grit-heatmap-4']
+        : ['bg-grit-heatmap-0', 'bg-grit-heatmap-1', 'bg-grit-heatmap-2', 'bg-grit-heatmap-3', 'bg-grit-heatmap-4'];
     const { weeks, monthLabels } = useMemo(() => {
         // Group data by weeks
         const weeksMap: HeatmapDay[][] = [];
@@ -80,7 +79,7 @@ export function ContributionHeatmap({ data, months = 3 }: ContributionHeatmapPro
     }, [data, months]);
 
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
             <div className="flex items-center gap-2 mb-4">
                 <Calendar className="w-5 h-5 text-grit-accent" />
                 <h2 className="text-lg font-semibold text-grit-text">継続記録</h2>
@@ -120,8 +119,8 @@ export function ContributionHeatmap({ data, months = 3 }: ContributionHeatmapPro
                                         <div
                                             key={day.date}
                                             className={`w-[11px] h-[11px] rounded-sm transition-colors ${isFuture
-                                                    ? 'bg-transparent'
-                                                    : LEVEL_COLORS[day.level]
+                                                ? 'bg-transparent'
+                                                : LEVEL_COLORS[day.level]
                                                 } ${isToday ? 'ring-1 ring-grit-text-muted' : ''}`}
                                             title={`${day.date}: ${day.weightLogged ? '体重記録済み' : ''} ${day.habitsCompleted}/${day.habitsTotal} タスク完了`}
                                         />

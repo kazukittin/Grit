@@ -43,7 +43,7 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
     };
 
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-grit-accent" />
@@ -56,6 +56,16 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                 <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                            {/* Glow filter for dark mode */}
+                            <defs>
+                                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
                             <XAxis
                                 dataKey="date"
                                 axisLine={false}
@@ -93,18 +103,19 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                                 type="monotone"
                                 dataKey="weight"
                                 stroke="#f97316"
-                                strokeWidth={3}
+                                strokeWidth={theme === 'dark' ? 4 : 3}
+                                filter={theme === 'dark' ? 'url(#glow)' : undefined}
                                 dot={{
                                     fill: '#f97316',
                                     stroke: dotStrokeColor,
                                     strokeWidth: 2,
-                                    r: 5,
+                                    r: 6,
                                 }}
                                 activeDot={{
                                     fill: '#f97316',
                                     stroke: '#fff',
-                                    strokeWidth: 2,
-                                    r: 7,
+                                    strokeWidth: 3,
+                                    r: 8,
                                 }}
                             />
                         </LineChart>

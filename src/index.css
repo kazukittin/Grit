@@ -5,9 +5,12 @@
   --font-family-sans: 'Inter', system-ui, sans-serif;
   --color-grit-accent: #f97316;
   --color-grit-accent-dark: #ea580c;
+  --color-grit-accent-glow: rgba(249, 115, 22, 0.4);
   --color-grit-bg: #f8fafc;
   --color-grit-surface: #ffffff;
   --color-grit-surface-hover: #f1f5f9;
+  --color-grit-glass: rgba(255, 255, 255, 0.7);
+  --color-grit-glass-border: rgba(255, 255, 255, 0.3);
   --color-grit-border: #e2e8f0;
   --color-grit-text: #0f172a;
   --color-grit-text-muted: #64748b;
@@ -18,20 +21,32 @@
   --color-grit-chart-grid: #e2e8f0;
   --color-grit-chart-tick: #64748b;
   --color-grit-dot-stroke: #ffffff;
+  --color-grit-heatmap-0: #ebedf0;
+  --color-grit-heatmap-1: #9be9a8;
+  --color-grit-heatmap-2: #40c463;
+  --color-grit-heatmap-3: #30a14e;
+  --color-grit-heatmap-4: #216e39;
 }
 
-/* Dark mode - Stoic Dark theme */
+/* Dark mode - Premium Glassmorphism theme */
 .dark {
-  --color-grit-bg: #0a0a0a;
-  --color-grit-surface: #141414;
-  --color-grit-surface-hover: #1f1f1f;
-  --color-grit-border: #262626;
+  --color-grit-bg: #050505;
+  --color-grit-surface: rgba(20, 20, 20, 0.6);
+  --color-grit-surface-hover: rgba(35, 35, 35, 0.7);
+  --color-grit-glass: rgba(30, 30, 30, 0.5);
+  --color-grit-glass-border: rgba(255, 255, 255, 0.08);
+  --color-grit-border: rgba(255, 255, 255, 0.1);
   --color-grit-text: #fafafa;
   --color-grit-text-muted: #a3a3a3;
-  --color-grit-text-dim: #737373;
-  --color-grit-chart-grid: #262626;
-  --color-grit-chart-tick: #737373;
+  --color-grit-text-dim: #666666;
+  --color-grit-chart-grid: rgba(255, 255, 255, 0.08);
+  --color-grit-chart-tick: #666666;
   --color-grit-dot-stroke: #0a0a0a;
+  --color-grit-heatmap-0: rgba(255, 255, 255, 0.05);
+  --color-grit-heatmap-1: #0e4429;
+  --color-grit-heatmap-2: #006d32;
+  --color-grit-heatmap-3: #26a641;
+  --color-grit-heatmap-4: #39d353;
 }
 
 * {
@@ -53,8 +68,43 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Ambient gradient background for dark mode */
+.dark body {
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(249, 115, 22, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 30% at 50% 90%, rgba(249, 115, 22, 0.04) 0%, transparent 50%),
+    var(--color-grit-bg);
+  background-attachment: fixed;
+}
+
 #root {
   min-height: 100dvh;
+}
+
+/* Glassmorphism card styles */
+.glass-card {
+  background: var(--color-grit-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-grit-glass-border);
+}
+
+.dark .glass-card {
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Glow effect for accent elements */
+.glow-accent {
+  box-shadow: 0 0 20px var(--color-grit-accent-glow),
+              0 0 40px rgba(249, 115, 22, 0.2);
+}
+
+.dark .glow-accent {
+  box-shadow: 0 0 30px var(--color-grit-accent-glow),
+              0 0 60px rgba(249, 115, 22, 0.15);
 }
 
 /* Custom scrollbar */

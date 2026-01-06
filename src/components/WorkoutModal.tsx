@@ -44,7 +44,7 @@ export const WorkoutModal = ({ isOpen, onClose, onSave, routine }: WorkoutModalP
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-md bg-grit-surface rounded-t-3xl sm:rounded-2xl border border-grit-border shadow-xl animate-slide-up">
+            <div className="relative w-full max-w-md bg-grit-surface dark:glass-card rounded-t-3xl sm:rounded-2xl border border-grit-border dark:border-grit-glass-border shadow-xl animate-slide-up backdrop-blur-2xl">
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">

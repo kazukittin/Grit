@@ -42,7 +42,7 @@ export const TodayMeals = ({ meals, onAddMeal, onEditMeal, onDeleteMeal }: Today
     };
 
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
             {/* Header with total calories */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">

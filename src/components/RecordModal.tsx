@@ -61,7 +61,7 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-lg bg-grit-surface border-t border-grit-border rounded-t-3xl animate-slide-up">
+            <div className="relative w-full max-w-lg bg-grit-surface dark:glass-card border-t border-grit-border dark:border-grit-glass-border rounded-t-3xl animate-slide-up backdrop-blur-2xl">
                 {/* Handle */}
                 <div className="flex justify-center pt-3 pb-2">
                     <div className="w-10 h-1 bg-grit-border rounded-full" />

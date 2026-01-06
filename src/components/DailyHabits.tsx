@@ -119,7 +119,7 @@ export const DailyHabits = ({ habits, onToggle }: DailyHabitsProps) => {
     }, [completedCount, totalCount]);
 
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Zap className="w-5 h-5 text-grit-accent" />

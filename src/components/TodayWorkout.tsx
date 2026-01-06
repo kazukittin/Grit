@@ -37,7 +37,7 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
     // Already completed today
     if (todayLog) {
         return (
-            <div className="bg-grit-surface rounded-2xl p-6 border-2 border-grit-positive/50 animate-fade-in">
+            <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border-2 border-grit-positive/50 animate-fade-in backdrop-blur-xl">
                 <div className="flex items-center gap-2 mb-4">
                     <CheckCircle className="w-5 h-5 text-grit-positive" />
                     <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>
@@ -68,7 +68,7 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
     // Has routine for today
     if (routine) {
         return (
-            <div className="bg-grit-surface rounded-2xl p-6 border-2 border-grit-accent/50 animate-fade-in">
+            <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border-2 border-grit-accent/50 animate-fade-in backdrop-blur-xl">
                 <div className="flex items-center gap-2 mb-4">
                     <Dumbbell className="w-5 h-5 text-grit-accent" />
                     <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>
@@ -107,7 +107,7 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
 
     // Rest day or no routine set
     return (
-        <div className="bg-grit-surface rounded-2xl p-6 border border-grit-border animate-fade-in">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
             <div className="flex items-center gap-2 mb-4">
                 <Coffee className="w-5 h-5 text-grit-text-muted" />
                 <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>

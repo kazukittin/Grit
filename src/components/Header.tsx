@@ -11,7 +11,7 @@ export const Header = ({ level }: HeaderProps) => {
     const { theme, toggleTheme } = useTheme();
 
     return (
-        <header className="sticky top-0 z-40 bg-grit-bg/80 backdrop-blur-xl border-b border-grit-border">
+        <header className="sticky top-0 z-40 bg-grit-bg/80 dark:bg-grit-bg/60 backdrop-blur-2xl border-b border-grit-border dark:border-grit-glass-border">
             <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">
                     <span className="text-grit-text">Grit</span>
