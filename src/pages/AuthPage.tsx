@@ -50,16 +50,17 @@ export function AuthPage() {
         setLoading(true);
 
         // Normalize email:
-        // 1. Convert full-width characters to half-width
+        // 1. Convert full-width characters (alphanumeric AND symbols like @) to half-width
         // 2. Remove whitespace
         // 3. Convert to lowercase
         const cleanEmail = email
-            .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-            .replace(/\s+/g, '') // Remove all whitespace (including full-width)
+            .replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/\s+/g, '') // Remove all whitespace
             .trim()
             .toLowerCase();
 
-        console.log('Attemping auth with email:', cleanEmail); // Debug log
+        // Debug: Verify the cleaned email
+        alert(`送信するメールアドレス:\n${cleanEmail}`);
 
         try {
             if (mode === 'signup') {
