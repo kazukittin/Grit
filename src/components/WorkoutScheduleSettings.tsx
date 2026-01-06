@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, Hash, Layers } from 'lucide-react';
+import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, ChevronDown } from 'lucide-react';
 import type { WorkoutRoutine, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
 
@@ -17,26 +17,15 @@ interface DayFormState {
     isSaving: boolean;
 }
 
-// 事前に定義された筋トレメニューオプション
+// 事前に定義された筋トレメニューオプション（カテゴリ付き）
 const PRESET_EXERCISES = [
-    '腕立て伏せ',
-    'スクワット',
-    'プランク',
-    '腹筋',
-    'バーピー',
-    'ランジ',
-    'デッドリフト',
-    'ベンチプレス',
-    'ショルダープレス',
-    'ラットプルダウン',
-    'レッグプレス',
-    'カーフレイズ',
-    'バイセップカール',
-    'トライセップディップス',
-    'ランニング',
-    'バイク',
-    'ジャンピングジャック',
-    'マウンテンクライマー',
+    { category: '胸', items: ['腕立て伏せ', 'ベンチプレス', 'ダンベルフライ', 'ケーブルクロス'] },
+    { category: '背中', items: ['ラットプルダウン', 'デッドリフト', 'ローイング', '懸垂'] },
+    { category: '脚', items: ['スクワット', 'レッグプレス', 'ランジ', 'レッグカール', 'カーフレイズ'] },
+    { category: '肩', items: ['ショルダープレス', 'サイドレイズ', 'フロントレイズ', 'リアレイズ'] },
+    { category: '腕', items: ['バイセップカール', 'トライセップディップス', 'ハンマーカール'] },
+    { category: '体幹', items: ['プランク', '腹筋', 'クランチ', 'レッグレイズ', 'サイドプランク'] },
+    { category: '全身・有酸素', items: ['バーピー', 'マウンテンクライマー', 'ジャンピングジャック', 'ランニング', 'バイク'] },
 ];
 
 function generateId() {
@@ -66,7 +55,8 @@ export const WorkoutScheduleSettings = ({
 }: WorkoutScheduleSettingsProps) => {
     const [dayForms, setDayForms] = useState<Record<number, DayFormState>>({});
     const [expandedDay, setExpandedDay] = useState<number | null>(null);
-    const [newExerciseName, setNewExerciseName] = useState('');
+    const [showExercisePicker, setShowExercisePicker] = useState<number | null>(null);
+    const [customExerciseName, setCustomExerciseName] = useState('');
 
     // Initialize form state from routines
     useEffect(() => {
@@ -102,7 +92,7 @@ export const WorkoutScheduleSettings = ({
             name: name.trim(),
             reps: 10,
             sets: 3,
-            calories: 50,
+            calories: 10,
         };
 
         setDayForms(prev => ({
@@ -113,7 +103,8 @@ export const WorkoutScheduleSettings = ({
                 isDirty: true,
             },
         }));
-        setNewExerciseName('');
+        setShowExercisePicker(null);
+        setCustomExerciseName('');
     }, []);
 
     const handleUpdateExercise = useCallback((day: number, exerciseId: string, field: keyof ExerciseItem, value: string | number) => {
@@ -185,7 +176,7 @@ export const WorkoutScheduleSettings = ({
             </div>
 
             <p className="text-sm text-grit-text-muted mb-6">
-                曜日ごとのトレーニングメニューを設定できます。エクササイズごとに回数・セット数・消費カロリーを入力してください。
+                曜日ごとのトレーニングメニューを設定できます。
             </p>
 
             <div className="space-y-3">
@@ -249,7 +240,7 @@ export const WorkoutScheduleSettings = ({
                                             {/* Title Input */}
                                             <div>
                                                 <label className="block text-sm font-medium text-grit-text-muted mb-2">
-                                                    トレーニング名
+                                                    🏷️ トレーニング名
                                                 </label>
                                                 <input
                                                     type="text"
@@ -262,118 +253,196 @@ export const WorkoutScheduleSettings = ({
 
                                             {/* Exercises List */}
                                             <div>
-                                                <label className="block text-sm font-medium text-grit-text-muted mb-2">
-                                                    筋トレメニュー
+                                                <label className="block text-sm font-medium text-grit-text-muted mb-3">
+                                                    💪 エクササイズ
                                                 </label>
 
                                                 {form.exercises.length > 0 && (
-                                                    <div className="space-y-2 mb-3">
+                                                    <div className="space-y-3 mb-4">
                                                         {form.exercises.map((exercise, index) => (
-                                                            <div
+                                                            <motion.div
                                                                 key={exercise.id}
-                                                                className="flex items-center gap-2 p-3 bg-grit-bg rounded-xl border border-grit-border"
+                                                                initial={{ opacity: 0, y: -10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                className="bg-gradient-to-r from-grit-surface to-grit-bg rounded-xl border border-grit-border p-4"
                                                             >
-                                                                <span className="text-xs text-grit-text-dim w-5">
-                                                                    {index + 1}.
-                                                                </span>
-
-                                                                {/* Exercise Name */}
-                                                                <input
-                                                                    type="text"
-                                                                    value={exercise.name}
-                                                                    onChange={(e) => handleUpdateExercise(day, exercise.id, 'name', e.target.value)}
-                                                                    className="flex-1 min-w-0 px-2 py-1.5 bg-transparent border-b border-grit-border text-grit-text text-sm focus:outline-none focus:border-grit-accent"
-                                                                    placeholder="エクササイズ名"
-                                                                />
-
-                                                                {/* Reps */}
-                                                                <div className="flex items-center gap-1">
-                                                                    <Hash className="w-3 h-3 text-grit-text-dim" />
-                                                                    <input
-                                                                        type="number"
-                                                                        value={exercise.reps}
-                                                                        onChange={(e) => handleUpdateExercise(day, exercise.id, 'reps', parseInt(e.target.value) || 0)}
-                                                                        className="w-12 px-1 py-1 bg-grit-surface-hover border border-grit-border rounded text-center text-sm text-grit-text focus:outline-none focus:border-grit-accent"
-                                                                        min="1"
-                                                                    />
-                                                                    <span className="text-xs text-grit-text-dim">回</span>
+                                                                {/* Exercise Header */}
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="w-6 h-6 flex items-center justify-center rounded-full bg-grit-accent/20 text-grit-accent text-xs font-bold">
+                                                                            {index + 1}
+                                                                        </span>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={exercise.name}
+                                                                            onChange={(e) => handleUpdateExercise(day, exercise.id, 'name', e.target.value)}
+                                                                            className="bg-transparent border-none text-grit-text font-medium focus:outline-none focus:ring-0 text-base"
+                                                                            placeholder="エクササイズ名"
+                                                                        />
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => handleRemoveExercise(day, exercise.id)}
+                                                                        className="p-1.5 text-grit-text-dim hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
                                                                 </div>
 
-                                                                {/* Sets */}
-                                                                <div className="flex items-center gap-1">
-                                                                    <Layers className="w-3 h-3 text-grit-text-dim" />
-                                                                    <input
-                                                                        type="number"
-                                                                        value={exercise.sets}
-                                                                        onChange={(e) => handleUpdateExercise(day, exercise.id, 'sets', parseInt(e.target.value) || 0)}
-                                                                        className="w-10 px-1 py-1 bg-grit-surface-hover border border-grit-border rounded text-center text-sm text-grit-text focus:outline-none focus:border-grit-accent"
-                                                                        min="1"
-                                                                    />
-                                                                    <span className="text-xs text-grit-text-dim">セット</span>
-                                                                </div>
+                                                                {/* Exercise Details - Horizontal Grid */}
+                                                                <div className="grid grid-cols-3 gap-3">
+                                                                    {/* Reps */}
+                                                                    <div className="bg-grit-surface-hover rounded-lg p-3">
+                                                                        <label className="block text-xs text-grit-text-dim mb-1">
+                                                                            回数
+                                                                        </label>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={exercise.reps}
+                                                                                onChange={(e) => handleUpdateExercise(day, exercise.id, 'reps', parseInt(e.target.value) || 0)}
+                                                                                className="w-full bg-transparent border-none text-grit-text text-lg font-semibold focus:outline-none text-center"
+                                                                                min="1"
+                                                                            />
+                                                                            <span className="text-xs text-grit-text-dim">回</span>
+                                                                        </div>
+                                                                    </div>
 
-                                                                {/* Calories per set */}
-                                                                <div className="flex items-center gap-1">
-                                                                    <Flame className="w-3 h-3 text-orange-400" />
-                                                                    <input
-                                                                        type="number"
-                                                                        value={exercise.calories}
-                                                                        onChange={(e) => handleUpdateExercise(day, exercise.id, 'calories', parseInt(e.target.value) || 0)}
-                                                                        className="w-14 px-1 py-1 bg-grit-surface-hover border border-grit-border rounded text-center text-sm text-grit-text focus:outline-none focus:border-grit-accent"
-                                                                        min="0"
-                                                                    />
-                                                                    <span className="text-xs text-grit-text-dim">kcal</span>
-                                                                </div>
+                                                                    {/* Sets */}
+                                                                    <div className="bg-grit-surface-hover rounded-lg p-3">
+                                                                        <label className="block text-xs text-grit-text-dim mb-1">
+                                                                            セット
+                                                                        </label>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={exercise.sets}
+                                                                                onChange={(e) => handleUpdateExercise(day, exercise.id, 'sets', parseInt(e.target.value) || 0)}
+                                                                                className="w-full bg-transparent border-none text-grit-text text-lg font-semibold focus:outline-none text-center"
+                                                                                min="1"
+                                                                            />
+                                                                            <span className="text-xs text-grit-text-dim">set</span>
+                                                                        </div>
+                                                                    </div>
 
-                                                                {/* Remove Button */}
-                                                                <button
-                                                                    onClick={() => handleRemoveExercise(day, exercise.id)}
-                                                                    className="p-1.5 text-grit-text-dim hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
-                                                                >
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
+                                                                    {/* Calories per set */}
+                                                                    <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg p-3 border border-orange-500/20">
+                                                                        <label className="block text-xs text-orange-400 mb-1">
+                                                                            消費カロリー
+                                                                        </label>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <input
+                                                                                type="number"
+                                                                                value={exercise.calories}
+                                                                                onChange={(e) => handleUpdateExercise(day, exercise.id, 'calories', parseInt(e.target.value) || 0)}
+                                                                                className="w-full bg-transparent border-none text-orange-400 text-lg font-semibold focus:outline-none text-center"
+                                                                                min="0"
+                                                                            />
+                                                                            <span className="text-xs text-orange-400/70">kcal</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
                                                         ))}
 
                                                         {/* Total Calories */}
                                                         <div className="flex items-center justify-end gap-2 pt-2 text-sm">
-                                                            <span className="text-grit-text-muted">合計消費カロリー:</span>
-                                                            <span className="font-semibold text-orange-400">
+                                                            <Flame className="w-4 h-4 text-orange-400" />
+                                                            <span className="text-grit-text-muted">合計:</span>
+                                                            <span className="font-bold text-orange-400 text-lg">
                                                                 {totalCalories} kcal
                                                             </span>
                                                         </div>
                                                     </div>
                                                 )}
 
-                                                {/* Add Exercise */}
-                                                <div className="flex gap-2">
-                                                    <div className="flex-1 relative">
-                                                        <input
-                                                            type="text"
-                                                            value={newExerciseName}
-                                                            onChange={(e) => setNewExerciseName(e.target.value)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    handleAddExercise(day, newExerciseName);
-                                                                }
-                                                            }}
-                                                            placeholder="エクササイズを追加..."
-                                                            list={`preset-exercises-${day}`}
-                                                            className="w-full px-4 py-2.5 bg-grit-surface border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
-                                                        />
-                                                        <datalist id={`preset-exercises-${day}`}>
-                                                            {PRESET_EXERCISES.map((name) => (
-                                                                <option key={name} value={name} />
-                                                            ))}
-                                                        </datalist>
-                                                    </div>
+                                                {/* Add Exercise Button / Picker */}
+                                                <div>
                                                     <button
-                                                        onClick={() => handleAddExercise(day, newExerciseName)}
-                                                        disabled={!newExerciseName.trim()}
-                                                        className="px-4 py-2.5 bg-grit-accent/20 text-grit-accent rounded-xl hover:bg-grit-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        onClick={() => setShowExercisePicker(showExercisePicker === day ? null : day)}
+                                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-grit-border hover:border-grit-accent/50 hover:bg-grit-accent/5 transition-all text-grit-text-muted hover:text-grit-accent"
                                                     >
                                                         <Plus className="w-5 h-5" />
+                                                        <span className="font-medium">エクササイズを追加</span>
+                                                        <ChevronDown className={`w-4 h-4 transition-transform ${showExercisePicker === day ? 'rotate-180' : ''}`} />
                                                     </button>
+
+                                                    {/* Exercise Picker - Inline */}
+                                                    <AnimatePresence>
+                                                        {showExercisePicker === day && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="overflow-hidden mt-3"
+                                                            >
+                                                                <div className="bg-grit-bg border-2 border-grit-accent/30 rounded-2xl shadow-lg overflow-hidden">
+                                                                    {/* Header */}
+                                                                    <div className="bg-gradient-to-r from-grit-accent/20 to-orange-500/20 px-4 py-3 border-b border-grit-border">
+                                                                        <h4 className="text-sm font-bold text-grit-text flex items-center gap-2">
+                                                                            <Dumbbell className="w-4 h-4 text-grit-accent" />
+                                                                            エクササイズを選択
+                                                                        </h4>
+                                                                    </div>
+
+                                                                    {/* Custom Input */}
+                                                                    <div className="p-3 bg-grit-surface border-b border-grit-border">
+                                                                        <div className="flex gap-2">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={customExerciseName}
+                                                                                onChange={(e) => setCustomExerciseName(e.target.value)}
+                                                                                onKeyDown={(e) => {
+                                                                                    if (e.key === 'Enter' && customExerciseName.trim()) {
+                                                                                        handleAddExercise(day, customExerciseName);
+                                                                                    }
+                                                                                }}
+                                                                                placeholder="✏️ オリジナルの種目を入力..."
+                                                                                className="flex-1 px-4 py-2.5 bg-grit-bg border-2 border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent"
+                                                                            />
+                                                                            <button
+                                                                                onClick={() => handleAddExercise(day, customExerciseName)}
+                                                                                disabled={!customExerciseName.trim()}
+                                                                                className="px-5 py-2.5 bg-grit-accent text-white rounded-xl font-semibold disabled:opacity-40 hover:bg-grit-accent-dark transition-colors"
+                                                                            >
+                                                                                追加
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Preset Categories */}
+                                                                    <div className="max-h-80 overflow-y-auto p-3 space-y-4">
+                                                                        {PRESET_EXERCISES.map((category) => (
+                                                                            <div key={category.category}>
+                                                                                <div className="text-xs font-bold text-grit-accent uppercase tracking-wider px-1 mb-2 flex items-center gap-2">
+                                                                                    <span className="w-1 h-4 bg-grit-accent rounded-full"></span>
+                                                                                    {category.category}
+                                                                                </div>
+                                                                                <div className="grid grid-cols-2 gap-2">
+                                                                                    {category.items.map((item) => (
+                                                                                        <button
+                                                                                            key={item}
+                                                                                            onClick={() => handleAddExercise(day, item)}
+                                                                                            className="px-4 py-2.5 bg-grit-surface hover:bg-grit-accent text-left border border-grit-border hover:border-grit-accent rounded-xl text-sm text-grit-text hover:text-white font-medium transition-all duration-150"
+                                                                                        >
+                                                                                            {item}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    {/* Close hint */}
+                                                                    <div className="px-4 py-2 bg-grit-surface-hover text-center">
+                                                                        <span className="text-xs text-grit-text-dim">
+                                                                            ボタンをクリックで選択
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
                                             </div>
 

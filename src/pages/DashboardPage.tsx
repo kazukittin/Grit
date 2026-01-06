@@ -282,9 +282,11 @@ export function DashboardPage() {
 
     // Handle initial setup completion
     const handleCompleteSetup = useCallback(async (data: SetupData) => {
-        if (!profile) return;
+        if (!profile || !user) return;
 
+        // Update profile with height and targets
         await updateProfile(profile.$id, {
+            height: data.height,
             target_weight: data.targetWeight,
             target_calories: data.targetCalories,
             target_protein: data.targetProtein,
@@ -295,6 +297,7 @@ export function DashboardPage() {
         // Update local profile state
         setProfile({
             ...profile,
+            height: data.height,
             target_weight: data.targetWeight,
             target_calories: data.targetCalories,
             target_protein: data.targetProtein,
@@ -302,8 +305,16 @@ export function DashboardPage() {
             target_carbs: data.targetCarbs,
         });
 
+        // If current weight was entered, add it as the first weight log
+        if (data.currentWeight) {
+            const weightLog = await addWeightLog(user.$id, data.currentWeight, undefined);
+            if (weightLog) {
+                setLatestLog(weightLog);
+            }
+        }
+
         completeSetup();
-    }, [profile, completeSetup]);
+    }, [profile, user, completeSetup]);
 
     // Calculate PFC summary from today's meals
     const pfcSummary: PFCSummary = useMemo(() => {

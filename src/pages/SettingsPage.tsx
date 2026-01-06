@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
 import { useOnboarding } from '../components/OnboardingTour';
+import { useInitialSetup } from '../components/InitialSetupWizard';
 import {
     getOrCreateProfile,
     updateProfile,
@@ -24,6 +25,7 @@ export function SettingsPage() {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
     const { resetOnboarding } = useOnboarding();
+    const { resetSetup } = useInitialSetup();
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [habits, setHabits] = useState<Habit[]>([]);
@@ -427,14 +429,26 @@ export function SettingsPage() {
                     />
                 )}
 
-                {/* Reset Onboarding */}
-                <button
-                    onClick={resetOnboarding}
-                    className="w-full py-3 bg-grit-surface border border-grit-border text-grit-text-muted font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-grit-surface-hover transition-colors"
-                >
-                    <RefreshCw className="w-5 h-5" />
-                    チュートリアルを再表示
-                </button>
+                {/* Reset Buttons */}
+                <div className="space-y-3">
+                    <button
+                        onClick={resetOnboarding}
+                        className="w-full py-3 bg-grit-surface border border-grit-border text-grit-text-muted font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-grit-surface-hover transition-colors"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                        チュートリアルを再表示
+                    </button>
+                    <button
+                        onClick={() => {
+                            resetSetup();
+                            alert('初期設定をリセットしました。ダッシュボードに戻ると表示されます。');
+                        }}
+                        className="w-full py-3 bg-grit-surface border border-grit-border text-grit-text-muted font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-grit-surface-hover transition-colors"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                        初期設定ウィザードを再表示
+                    </button>
+                </div>
 
                 {/* Sign Out */}
                 <button

@@ -68,6 +68,7 @@ export async function createProfile(userId: string): Promise<Profile | null> {
 export async function updateProfile(
     profileId: string,
     updates: {
+        height?: number | null;
         target_weight?: number | null;
         target_calories?: number | null;
         target_protein?: number | null;

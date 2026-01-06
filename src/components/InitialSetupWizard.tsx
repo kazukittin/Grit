@@ -8,6 +8,8 @@ import {
     CheckCircle,
     Sparkles,
     Scale,
+    Ruler,
+    User,
 } from 'lucide-react';
 
 interface InitialSetupWizardProps {
@@ -17,6 +19,8 @@ interface InitialSetupWizardProps {
 }
 
 export interface SetupData {
+    currentWeight: number | null;
+    height: number | null;
     targetWeight: number | null;
     targetCalories: number | null;
     targetProtein: number | null;
@@ -24,7 +28,7 @@ export interface SetupData {
     targetCarbs: number | null;
 }
 
-const STEPS = ['welcome', 'weight', 'nutrition', 'complete'] as const;
+const STEPS = ['welcome', 'body', 'goals', 'nutrition', 'complete'] as const;
 type StepType = typeof STEPS[number];
 
 export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupWizardProps) {
@@ -33,6 +37,8 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form state
+    const [currentWeight, setCurrentWeight] = useState('');
+    const [height, setHeight] = useState('');
     const [targetWeight, setTargetWeight] = useState('');
     const [targetCalories, setTargetCalories] = useState('2000');
     const [targetProtein, setTargetProtein] = useState('120');
@@ -61,6 +67,8 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
     const handleComplete = async () => {
         setIsSubmitting(true);
         await onComplete({
+            currentWeight: currentWeight ? parseFloat(currentWeight) : null,
+            height: height ? parseFloat(height) : null,
             targetWeight: targetWeight ? parseFloat(targetWeight) : null,
             targetCalories: targetCalories ? parseInt(targetCalories) : null,
             targetProtein: targetProtein ? parseInt(targetProtein) : null,
@@ -68,6 +76,18 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
             targetCarbs: targetCarbs ? parseInt(targetCarbs) : null,
         });
         setIsSubmitting(false);
+    };
+
+    // Calculate BMI if height and weight are entered
+    const bmi = height && currentWeight
+        ? (parseFloat(currentWeight) / Math.pow(parseFloat(height) / 100, 2)).toFixed(1)
+        : null;
+
+    const getBmiStatus = (bmi: number) => {
+        if (bmi < 18.5) return { label: 'やせ', color: 'text-blue-400' };
+        if (bmi < 25) return { label: '標準', color: 'text-green-400' };
+        if (bmi < 30) return { label: '肥満(1度)', color: 'text-yellow-400' };
+        return { label: '肥満(2度以上)', color: 'text-red-400' };
     };
 
     const slideVariants = {
@@ -118,7 +138,102 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                     </div>
                 );
 
-            case 'weight':
+            case 'body':
+                return (
+                    <div>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                                <User className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-grit-text">体の情報</h2>
+                                <p className="text-sm text-grit-text-muted">現在の状態を教えてください</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                            {/* Current Weight */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
+                                    <Scale className="w-4 h-4" />
+                                    現在の体重
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={currentWeight}
+                                        onChange={(e) => setCurrentWeight(e.target.value)}
+                                        placeholder="65.0"
+                                        className="w-full px-4 py-3 pr-14 bg-grit-surface-hover border border-grit-border rounded-xl text-grit-text text-lg placeholder:text-grit-text-dim focus:outline-none focus:ring-2 focus:ring-grit-accent/50"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">
+                                        kg
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Height */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
+                                    <Ruler className="w-4 h-4" />
+                                    身長
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={height}
+                                        onChange={(e) => setHeight(e.target.value)}
+                                        placeholder="170.0"
+                                        className="w-full px-4 py-3 pr-14 bg-grit-surface-hover border border-grit-border rounded-xl text-grit-text text-lg placeholder:text-grit-text-dim focus:outline-none focus:ring-2 focus:ring-grit-accent/50"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">
+                                        cm
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* BMI Display */}
+                            {bmi && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-grit-surface rounded-xl p-4 border border-grit-border"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-grit-text-muted">BMI</span>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-bold text-grit-text">{bmi}</span>
+                                            <span className={`ml-2 text-sm font-medium ${getBmiStatus(parseFloat(bmi)).color}`}>
+                                                {getBmiStatus(parseFloat(bmi)).label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleBack}
+                                className="flex-1 py-3 rounded-xl border border-grit-border text-grit-text font-medium hover:bg-grit-surface-hover transition-colors flex items-center justify-center gap-2"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                                戻る
+                            </button>
+                            <button
+                                onClick={handleNext}
+                                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-grit-accent to-orange-400 text-white font-semibold shadow-lg shadow-grit-accent/30 hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                次へ
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                );
+
+            case 'goals':
                 return (
                     <div>
                         <div className="flex items-center gap-3 mb-6">
@@ -149,7 +264,30 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                                     kg
                                 </span>
                             </div>
-                            <p className="text-xs text-grit-text-dim mt-2">
+
+                            {/* Weight difference */}
+                            {currentWeight && targetWeight && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="mt-3 text-center"
+                                >
+                                    <span className={`text-sm font-medium ${parseFloat(currentWeight) > parseFloat(targetWeight)
+                                        ? 'text-green-400'
+                                        : parseFloat(currentWeight) < parseFloat(targetWeight)
+                                            ? 'text-blue-400'
+                                            : 'text-grit-text-muted'
+                                        }`}>
+                                        {parseFloat(currentWeight) > parseFloat(targetWeight)
+                                            ? `🎯 ${(parseFloat(currentWeight) - parseFloat(targetWeight)).toFixed(1)}kg 減量目標`
+                                            : parseFloat(currentWeight) < parseFloat(targetWeight)
+                                                ? `💪 ${(parseFloat(targetWeight) - parseFloat(currentWeight)).toFixed(1)}kg 増量目標`
+                                                : '✨ 現在の体重を維持'}
+                                    </span>
+                                </motion.div>
+                            )}
+
+                            <p className="text-xs text-grit-text-dim mt-3">
                                 後から設定ページで変更できます
                             </p>
                         </div>
@@ -300,6 +438,18 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                         <div className="bg-grit-surface-hover rounded-2xl p-4 mb-6 text-left">
                             <h3 className="text-sm font-semibold text-grit-text-muted mb-3">設定内容</h3>
                             <div className="space-y-2 text-sm">
+                                {currentWeight && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-grit-text-muted">現在の体重</span>
+                                        <span className="text-grit-text font-medium">{currentWeight} kg</span>
+                                    </div>
+                                )}
+                                {height && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-grit-text-muted">身長</span>
+                                        <span className="text-grit-text font-medium">{height} cm</span>
+                                    </div>
+                                )}
                                 {targetWeight && (
                                     <div className="flex items-center justify-between">
                                         <span className="text-grit-text-muted">目標体重</span>
@@ -416,9 +566,9 @@ export function useInitialSetup() {
         const completed = localStorage.getItem(SETUP_COMPLETED_KEY);
 
         // Show setup if:
-        // 1. Setup hasn't been completed before
-        // 2. Profile doesn't have target weight set
-        if (!completed && !profileHasTargets) {
+        // 1. Setup hasn't been completed/skipped before (localStorage entry doesn't exist)
+        // Note: If user resets via settings, the key is removed so wizard shows again
+        if (!completed) {
             setShowSetup(true);
         }
         setHasChecked(true);
