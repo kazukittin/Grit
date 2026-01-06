@@ -115,7 +115,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/Grit">
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>

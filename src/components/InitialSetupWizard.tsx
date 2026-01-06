@@ -562,7 +562,7 @@ export function useInitialSetup() {
     const [showSetup, setShowSetup] = useState(false);
     const [hasChecked, setHasChecked] = useState(false);
 
-    const checkSetupStatus = (profileHasTargets: boolean) => {
+    const checkSetupStatus = (_profileHasTargets?: boolean) => {
         const completed = localStorage.getItem(SETUP_COMPLETED_KEY);
 
         // Show setup if:
