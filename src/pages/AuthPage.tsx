@@ -49,15 +49,18 @@ export function AuthPage() {
         setError('');
         setLoading(true);
 
+        // Remove whitespace
+        const cleanEmail = email.trim();
+
         try {
             if (mode === 'signup') {
                 // Create user account
-                await account.create(ID.unique(), email, password, name);
+                await account.create(ID.unique(), cleanEmail, password, name);
                 // Create session
-                await account.createEmailPasswordSession(email, password);
+                await account.createEmailPasswordSession(cleanEmail, password);
             } else {
                 // Login
-                await account.createEmailPasswordSession(email, password);
+                await account.createEmailPasswordSession(cleanEmail, password);
             }
             // Page reload or redirect will happen automatically via AuthContext
             window.location.reload();
@@ -67,6 +70,8 @@ export function AuthPage() {
                 setError('このメールアドレスは既に登録されています。');
             } else if (err?.code === 401) {
                 setError('メールアドレスまたはパスワードが間違っています。');
+            } else if (err?.type === 'param_email') {
+                setError('正しいメールアドレスを入力してください。');
             } else if (err?.message) {
                 setError(err.message);
             } else {
