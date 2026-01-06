@@ -60,7 +60,14 @@ export function AuthPage() {
             .toLowerCase();
 
         // Debug: Verify the cleaned email
-        alert(`送信するメールアドレス:\n${cleanEmail}`);
+        // alert(`送信するメールアドレス:\n${cleanEmail}`);
+
+        // Basic validation before sending
+        if (!cleanEmail.includes('.') || !cleanEmail.includes('@')) {
+            setError('有効なメールアドレスを入力してください（例: name@example.com）');
+            setLoading(false);
+            return;
+        }
 
         try {
             if (mode === 'signup') {
@@ -81,7 +88,7 @@ export function AuthPage() {
             } else if (err?.code === 401) {
                 setError('メールアドレスまたはパスワードが間違っています。');
             } else if (err?.type === 'param_email') {
-                setError('メールアドレスの形式が正しくありません。半角英数字で入力してください。');
+                setError('有効なメールアドレスを入力してください（例: name@example.com）');
             } else if (err?.message) {
                 setError(err.message);
             } else {
