@@ -32,6 +32,17 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_APPWRITE_ENDPOINT: https://sfo.cloud.appwrite.io/v1
+          VITE_APPWRITE_PROJECT_ID: 695a3e50002216f074c4
+          VITE_APPWRITE_DATABASE_ID: 695a3eae0037a169dc1d
+          VITE_APPWRITE_COLLECTION_PROFILES: profiles
+          VITE_APPWRITE_COLLECTION_WEIGHT_LOGS: weight_logs
+          VITE_APPWRITE_COLLECTION_HABITS: habits
+          VITE_APPWRITE_COLLECTION_HABIT_LOGS: habit_logs
+          VITE_APPWRITE_COLLECTION_WORKOUT_ROUTINES: workout_routines
+          VITE_APPWRITE_COLLECTION_WORKOUT_LOGS: workout_logs
+          VITE_APPWRITE_COLLECTION_MEAL_LOGS: meal_logs
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
