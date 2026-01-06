@@ -4,6 +4,10 @@ import type { Models } from 'appwrite';
 export interface Profile extends Models.Document {
     user_id: string;
     target_weight: number | null;
+    target_calories: number | null; // 1日の目標カロリー
+    target_protein: number | null;  // 目標タンパク質(g)
+    target_fat: number | null;      // 目標脂質(g)
+    target_carbs: number | null;    // 目標炭水化物(g)
 }
 
 export interface WeightLog extends Models.Document {
@@ -47,6 +51,17 @@ export interface MealLog extends Models.Document {
     meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     food_name: string;
     calories: number;
+    protein: number | null;  // タンパク質(g)
+    fat: number | null;      // 脂質(g)
+    carbs: number | null;    // 炭水化物(g)
+}
+
+// PFC Summary for display
+export interface PFCSummary {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
 }
 
 // Frontend Types
@@ -85,4 +100,94 @@ export const MEAL_TYPES: { type: MealType; label: string; icon: 'sunrise' | 'sun
     { type: 'snack', label: '間食', icon: 'cookie' },
 ];
 
+// ============ Achievements / Milestones ============
+
+export interface Achievement {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    category: 'streak' | 'weight' | 'habit' | 'workout' | 'meal';
+    condition: (stats: AchievementStats) => boolean;
+    unlockedAt?: string; // ISO date
+}
+
+export interface AchievementStats {
+    totalDaysRecorded: number;
+    currentStreak: number;
+    longestStreak: number;
+    totalWeightLoss: number;
+    totalHabitsCompleted: number;
+    totalWorkouts: number;
+    totalMeals: number;
+    currentWeight: number | null;
+    targetWeight: number | null;
+    startWeight: number | null;
+}
+
+export interface UserAchievement {
+    achievementId: string;
+    unlockedAt: string;
+}
+
+// ============ Diary / Notes ============
+
+// DiaryEntry is stored in localStorage, so doesn't need to extend Models.Document
+export interface DiaryEntry {
+    $id: string;
+    $createdAt: string;
+    $updatedAt: string;
+    $permissions?: string[];
+    $collectionId?: string;
+    $databaseId?: string;
+    user_id: string;
+    date: string;
+    mood: 'great' | 'good' | 'neutral' | 'bad' | 'terrible';
+    note: string;
+    energy_level: number; // 1-5
+}
+
+// ============ Statistics ============
+
+export interface WeeklyStats {
+    weekStart: string;
+    weekEnd: string;
+    avgWeight: number | null;
+    weightChange: number | null;
+    avgCalories: number;
+    habitsCompletionRate: number;
+    workoutCount: number;
+}
+
+export interface MonthlyStats {
+    month: string; // YYYY-MM
+    avgWeight: number | null;
+    minWeight: number | null;
+    maxWeight: number | null;
+    totalCalories: number;
+    avgDailyCalories: number;
+    totalWorkouts: number;
+    totalWorkoutMinutes: number;
+    habitsCompletionRate: number;
+}
+
+export interface DayOfWeekStats {
+    dayOfWeek: number;
+    avgWeight: number | null;
+    avgCalories: number;
+    habitsCompletionRate: number;
+}
+
+// ============ Data Export ============
+
+export interface ExportData {
+    exportedAt: string;
+    profile: Profile | null;
+    weightLogs: WeightLog[];
+    habits: Habit[];
+    habitLogs: HabitLog[];
+    workoutLogs: WorkoutLog[];
+    mealLogs: MealLog[];
+    diaryEntries: DiaryEntry[];
+}
 

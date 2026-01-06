@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { SummaryCard } from '../components/SummaryCard';
 import { WeeklyChart } from '../components/WeeklyChart';
@@ -12,7 +13,19 @@ import { WorkoutModal } from '../components/WorkoutModal';
 import { RecentWorkouts } from '../components/RecentWorkouts';
 import { TodayMeals } from '../components/TodayMeals';
 import { MealModal } from '../components/MealModal';
-import { Loader2, Plus } from 'lucide-react';
+import { CalorieRingChart } from '../components/CalorieRingChart';
+import { DiaryModal, MoodCard } from '../components/DiaryModal';
+import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
+import { AchievementManager } from '../components/Achievements';
+import {
+    SkeletonSummaryCard,
+    SkeletonChart,
+    SkeletonHabits,
+    SkeletonHeatmap,
+    SkeletonCalorieRing,
+    SkeletonMeals,
+} from '../components/Skeleton';
+import { Plus, BarChart3, Trophy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getOrCreateProfile,
@@ -33,11 +46,20 @@ import {
     addMealLog,
     updateMealLog,
     deleteMealLog,
+    getDiaryEntryForDate,
+    saveDiaryEntry,
+    getAchievementStats,
+    incrementHabitCompletions,
+    incrementMealCount,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, DiaryEntry, AchievementStats } from '../types';
 
 export function DashboardPage() {
     const { user } = useAuth();
+    const navigate = useNavigate();
+
+    // Onboarding
+    const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
 
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -60,6 +82,15 @@ export function DashboardPage() {
     const [isMealModalOpen, setIsMealModalOpen] = useState(false);
     const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
     const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
+
+    // Diary state
+    const [todayDiary, setTodayDiary] = useState<DiaryEntry | null>(null);
+    const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
+
+    // Achievement state
+    const [achievementStats, setAchievementStats] = useState<AchievementStats | null>(null);
+    const [previousUnlockedIds, setPreviousUnlockedIds] = useState<string[]>([]);
+
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -135,6 +166,14 @@ export function DashboardPage() {
             // Load meal data
             const mealLogs = await getMealLogsForDate(user.$id, today);
             setTodayMeals(mealLogs);
+
+            // Load diary entry for today
+            const diaryEntry = await getDiaryEntryForDate(user.$id, today);
+            setTodayDiary(diaryEntry);
+
+            // Load achievement stats
+            const stats = await getAchievementStats(user.$id);
+            setAchievementStats(stats);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -164,6 +203,9 @@ export function DashboardPage() {
                     h.habit.$id === habitId ? { ...h, completed: !completed } : h
                 )
             );
+        } else if (completed) {
+            // Track for achievements
+            incrementHabitCompletions(user.$id);
         }
     }, [user, today]);
 
@@ -200,18 +242,20 @@ export function DashboardPage() {
         setIsMealModalOpen(true);
     }, []);
 
-    const handleSaveMeal = useCallback(async (foodName: string, calories: number, mealType: MealType) => {
+    const handleSaveMeal = useCallback(async (foodName: string, calories: number, mealType: MealType, protein?: number, fat?: number, carbs?: number) => {
         if (!user) return;
 
-        const newMeal = await addMealLog(user.$id, mealType, foodName, calories, today);
+        const newMeal = await addMealLog(user.$id, mealType, foodName, calories, protein, fat, carbs, today);
         if (newMeal) {
             setTodayMeals(prev => [...prev, newMeal]);
+            // Track for achievements
+            incrementMealCount(user.$id);
         }
         setIsMealModalOpen(false);
     }, [user, today]);
 
-    const handleUpdateMeal = useCallback(async (logId: string, foodName: string, calories: number) => {
-        const updated = await updateMealLog(logId, { food_name: foodName, calories });
+    const handleUpdateMeal = useCallback(async (logId: string, foodName: string, calories: number, protein?: number, fat?: number, carbs?: number) => {
+        const updated = await updateMealLog(logId, { food_name: foodName, calories, protein, fat, carbs });
         if (updated) {
             setTodayMeals(prev => prev.map(m => m.$id === logId ? updated : m));
         }
@@ -226,13 +270,52 @@ export function DashboardPage() {
         }
     }, []);
 
+    // Calculate PFC summary from today's meals
+    const pfcSummary: PFCSummary = useMemo(() => {
+        return todayMeals.reduce(
+            (acc, meal) => ({
+                calories: acc.calories + (meal.calories || 0),
+                protein: acc.protein + (meal.protein || 0),
+                fat: acc.fat + (meal.fat || 0),
+                carbs: acc.carbs + (meal.carbs || 0),
+            }),
+            { calories: 0, protein: 0, fat: 0, carbs: 0 }
+        );
+    }, [todayMeals]);
+
+    // Target PFC from profile
+    const targetPFC = useMemo(() => {
+        if (!profile?.target_calories) return null;
+        return {
+            calories: profile.target_calories,
+            protein: profile.target_protein || 120,
+            fat: profile.target_fat || 60,
+            carbs: profile.target_carbs || 200,
+        };
+    }, [profile]);
+
     const weightDiff =
         latestLog && previousLog ? latestLog.weight - previousLog.weight : null;
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-grit-bg flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-grit-accent animate-spin" />
+            <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
+                <Header level={level} />
+                <main className="max-w-5xl mx-auto px-4 py-6">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                        <div className="md:col-span-3 space-y-6">
+                            <SkeletonSummaryCard />
+                            <SkeletonChart />
+                            <SkeletonChart />
+                            <SkeletonHeatmap />
+                        </div>
+                        <div className="md:col-span-2 space-y-6">
+                            <SkeletonCalorieRing />
+                            <SkeletonHabits />
+                            <SkeletonMeals />
+                        </div>
+                    </div>
+                </main>
             </div>
         );
     }
@@ -278,6 +361,12 @@ export function DashboardPage() {
 
                     {/* 右側 (PCで2カラム = 40%) */}
                     <div className="md:col-span-2 space-y-6">
+                        {/* Calorie & PFC Ring Chart */}
+                        <CalorieRingChart
+                            current={pfcSummary}
+                            target={targetPFC}
+                        />
+
                         <TodayWorkout
                             routine={todayRoutine}
                             todayLog={todayWorkoutLog}
@@ -297,7 +386,30 @@ export function DashboardPage() {
                             onDeleteMeal={handleDeleteMeal}
                         />
 
+                        <MoodCard
+                            entry={todayDiary}
+                            onEdit={() => setIsDiaryModalOpen(true)}
+                        />
+
                         <RecentWorkouts logs={recentWorkouts} />
+
+                        {/* Quick Navigation */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => navigate('/stats')}
+                                className="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
+                            >
+                                <BarChart3 className="w-5 h-5 text-blue-500" />
+                                <span className="text-sm font-medium text-grit-text">詳細統計</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/achievements')}
+                                className="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
+                            >
+                                <Trophy className="w-5 h-5 text-yellow-500" />
+                                <span className="text-sm font-medium text-grit-text">実績</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -328,6 +440,38 @@ export function DashboardPage() {
                 initialMealType={selectedMealType}
                 editingMeal={editingMeal}
             />
+
+            <DiaryModal
+                isOpen={isDiaryModalOpen}
+                onClose={() => setIsDiaryModalOpen(false)}
+                onSave={async (mood, note, energyLevel) => {
+                    if (!user) return;
+                    const entry = await saveDiaryEntry(user.$id, today, mood, note, energyLevel);
+                    if (entry) {
+                        setTodayDiary(entry);
+                    }
+                }}
+                existingEntry={todayDiary}
+            />
+
+            {/* Onboarding Tour */}
+            <OnboardingTour
+                isOpen={showOnboarding}
+                onComplete={completeOnboarding}
+                onSkip={skipOnboarding}
+            />
+
+            {/* Achievement Toast Manager */}
+            {achievementStats && (
+                <AchievementManager
+                    stats={achievementStats}
+                    previousUnlockedIds={previousUnlockedIds}
+                    onAchievementUnlocked={(achievement) => {
+                        // Add to previously unlocked to avoid showing again
+                        setPreviousUnlockedIds(prev => [...prev, achievement.id]);
+                    }}
+                />
+            )}
         </div>
     );
 }

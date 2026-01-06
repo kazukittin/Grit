@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Utensils, Flame } from 'lucide-react';
+import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat } from 'lucide-react';
 import type { MealLog, MealType } from '../types';
 import { MEAL_TYPES } from '../types';
 
 interface MealModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (foodName: string, calories: number, mealType: MealType) => Promise<void>;
-    onUpdate?: (logId: string, foodName: string, calories: number) => Promise<void>;
+    onSave: (foodName: string, calories: number, mealType: MealType, protein?: number, fat?: number, carbs?: number) => Promise<void>;
+    onUpdate?: (logId: string, foodName: string, calories: number, protein?: number, fat?: number, carbs?: number) => Promise<void>;
     initialMealType?: MealType;
     editingMeal?: MealLog | null;
 }
@@ -22,19 +22,32 @@ export const MealModal = ({
 }: MealModalProps) => {
     const [foodName, setFoodName] = useState('');
     const [calories, setCalories] = useState('');
+    const [protein, setProtein] = useState('');
+    const [fat, setFat] = useState('');
+    const [carbs, setCarbs] = useState('');
     const [mealType, setMealType] = useState<MealType>(initialMealType);
     const [isSaving, setIsSaving] = useState(false);
+    const [showPFC, setShowPFC] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             if (editingMeal) {
                 setFoodName(editingMeal.food_name);
                 setCalories(editingMeal.calories > 0 ? editingMeal.calories.toString() : '');
+                setProtein(editingMeal.protein && editingMeal.protein > 0 ? editingMeal.protein.toString() : '');
+                setFat(editingMeal.fat && editingMeal.fat > 0 ? editingMeal.fat.toString() : '');
+                setCarbs(editingMeal.carbs && editingMeal.carbs > 0 ? editingMeal.carbs.toString() : '');
                 setMealType(editingMeal.meal_type);
+                // Show PFC section if any PFC value exists
+                setShowPFC(!!(editingMeal.protein || editingMeal.fat || editingMeal.carbs));
             } else {
                 setFoodName('');
                 setCalories('');
+                setProtein('');
+                setFat('');
+                setCarbs('');
                 setMealType(initialMealType);
+                setShowPFC(false);
             }
         }
     }, [isOpen, editingMeal, initialMealType]);
@@ -45,11 +58,14 @@ export const MealModal = ({
 
         setIsSaving(true);
         const caloriesNum = parseInt(calories) || 0;
+        const proteinNum = protein ? parseFloat(protein) : undefined;
+        const fatNum = fat ? parseFloat(fat) : undefined;
+        const carbsNum = carbs ? parseFloat(carbs) : undefined;
 
         if (editingMeal && onUpdate) {
-            await onUpdate(editingMeal.$id, foodName.trim(), caloriesNum);
+            await onUpdate(editingMeal.$id, foodName.trim(), caloriesNum, proteinNum, fatNum, carbsNum);
         } else {
-            await onSave(foodName.trim(), caloriesNum, mealType);
+            await onSave(foodName.trim(), caloriesNum, mealType, proteinNum, fatNum, carbsNum);
         }
 
         setIsSaving(false);
@@ -69,7 +85,7 @@ export const MealModal = ({
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-md bg-grit-surface dark:glass-card rounded-t-3xl sm:rounded-2xl border border-grit-border dark:border-grit-glass-border shadow-xl animate-slide-up backdrop-blur-2xl">
+            <div className="relative w-full max-w-md bg-grit-surface dark:glass-card rounded-t-3xl sm:rounded-2xl border border-grit-border dark:border-grit-glass-border shadow-xl animate-slide-up backdrop-blur-2xl max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
@@ -155,10 +171,99 @@ export const MealModal = ({
                                     kcal
                                 </span>
                             </div>
-                            <p className="text-xs text-grit-text-dim mt-1">
-                                わからない場合は空欄でOKです
-                            </p>
                         </div>
+
+                        {/* PFC Toggle Button */}
+                        <button
+                            type="button"
+                            onClick={() => setShowPFC(!showPFC)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text-muted hover:border-grit-accent transition-colors"
+                        >
+                            <span className="flex items-center gap-2 text-sm">
+                                <Beef className="w-4 h-4" />
+                                PFC（栄養素）を入力
+                            </span>
+                            {showPFC ? (
+                                <ChevronUp className="w-4 h-4" />
+                            ) : (
+                                <ChevronDown className="w-4 h-4" />
+                            )}
+                        </button>
+
+                        {/* PFC Inputs (collapsible) */}
+                        {showPFC && (
+                            <div className="grid grid-cols-3 gap-3 animate-fade-in">
+                                {/* Protein */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Beef className="w-3.5 h-3.5 text-red-400" />
+                                        P（タンパク質）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={protein}
+                                            onChange={(e) => setProtein(e.target.value)}
+                                            placeholder="0"
+                                            min="0"
+                                            step="0.1"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-red-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">
+                                            g
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Fat */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Droplets className="w-3.5 h-3.5 text-yellow-400" />
+                                        F（脂質）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={fat}
+                                            onChange={(e) => setFat(e.target.value)}
+                                            placeholder="0"
+                                            min="0"
+                                            step="0.1"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-yellow-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">
+                                            g
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Carbs */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Wheat className="w-3.5 h-3.5 text-blue-400" />
+                                        C（炭水化物）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={carbs}
+                                            onChange={(e) => setCarbs(e.target.value)}
+                                            placeholder="0"
+                                            min="0"
+                                            step="0.1"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-blue-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">
+                                            g
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <p className="text-xs text-grit-text-dim">
+                            わからない場合は空欄でOKです
+                        </p>
 
                         {/* Submit Button */}
                         <button
@@ -174,3 +279,4 @@ export const MealModal = ({
         </div>
     );
 };
+

@@ -49,7 +49,21 @@
   --color-grit-heatmap-4: #39d353;
 }
 
+/* Smooth theme transition */
+html,
+body,
+.glass-card,
+.bg-grit-bg,
+.bg-grit-surface,
+.bg-grit-surface-hover,
+.text-grit-text,
+.text-grit-text-muted,
+.border-grit-border {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 * {
+
   box-sizing: border-box;
 }
 
@@ -70,7 +84,7 @@ body {
 
 /* Ambient gradient background for dark mode */
 .dark body {
-  background: 
+  background:
     radial-gradient(ellipse 80% 50% at 20% 40%, rgba(249, 115, 22, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse 60% 40% at 80% 60%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
     radial-gradient(ellipse 50% 30% at 50% 90%, rgba(249, 115, 22, 0.04) 0%, transparent 50%),
@@ -91,7 +105,7 @@ body {
 }
 
 .dark .glass-card {
-  box-shadow: 
+  box-shadow:
     0 4px 30px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -99,12 +113,12 @@ body {
 /* Glow effect for accent elements */
 .glow-accent {
   box-shadow: 0 0 20px var(--color-grit-accent-glow),
-              0 0 40px rgba(249, 115, 22, 0.2);
+    0 0 40px rgba(249, 115, 22, 0.2);
 }
 
 .dark .glow-accent {
   box-shadow: 0 0 30px var(--color-grit-accent-glow),
-              0 0 60px rgba(249, 115, 22, 0.15);
+    0 0 60px rgba(249, 115, 22, 0.15);
 }
 
 /* Custom scrollbar */

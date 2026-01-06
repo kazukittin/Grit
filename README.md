@@ -37,6 +37,10 @@
 |-----------|------|----------|
 | user_id | String (36) | Yes |
 | target_weight | Float | No |
+| target_calories | Integer | No |
+| target_protein | Integer | No |
+| target_fat | Integer | No |
+| target_carbs | Integer | No |
 
 #### weight_logs
 | Attribute | Type | Required |
@@ -61,6 +65,18 @@
 | date | String (10) | Yes |
 | completed | Boolean | Yes |
 
+#### meal_logs
+| Attribute | Type | Required |
+|-----------|------|----------|
+| user_id | String (36) | Yes |
+| date | String (10) | Yes |
+| meal_type | String (20) | Yes |
+| food_name | String (255) | Yes |
+| calories | Integer | No (default: 0) |
+| protein | Float | No |
+| fat | Float | No |
+| carbs | Float | No |
+
 ### 3. インデックスの作成（推奨）
 
 各Collectionに以下のインデックスを作成することを推奨します：
@@ -69,6 +85,7 @@
 - **weight_logs**: `user_id` + `date` (key, unique)
 - **habits**: `user_id` (key)
 - **habit_logs**: `user_id` + `habit_id` + `date` (key, unique)
+- **meal_logs**: `user_id` + `date` (key)
 
 ### 4. パーミッションの設定
 

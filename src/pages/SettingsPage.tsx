@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2 } from 'lucide-react';
+import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
+import { DataExportImport } from '../components/DataExport';
+import { useOnboarding } from '../components/OnboardingTour';
 import {
     getOrCreateProfile,
     updateProfile,
@@ -13,20 +15,28 @@ import {
     getWorkoutRoutines,
     saveWorkoutRoutine,
     deleteWorkoutRoutine,
+    exportAllData,
+    importData,
 } from '../services/api';
 import type { Profile, Habit, WorkoutRoutine } from '../types';
 
 export function SettingsPage() {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
+    const { resetOnboarding } = useOnboarding();
 
     const [profile, setProfile] = useState<Profile | null>(null);
     const [habits, setHabits] = useState<Habit[]>([]);
     const [workoutRoutines, setWorkoutRoutines] = useState<WorkoutRoutine[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [savingNutrition, setSavingNutrition] = useState(false);
 
     const [targetWeight, setTargetWeight] = useState('');
+    const [targetCalories, setTargetCalories] = useState('');
+    const [targetProtein, setTargetProtein] = useState('');
+    const [targetFat, setTargetFat] = useState('');
+    const [targetCarbs, setTargetCarbs] = useState('');
     const [newHabitTitle, setNewHabitTitle] = useState('');
     const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
     const [editingHabitTitle, setEditingHabitTitle] = useState('');
@@ -47,6 +57,18 @@ export function SettingsPage() {
             if (profileData?.target_weight) {
                 setTargetWeight(profileData.target_weight.toString());
             }
+            if (profileData?.target_calories) {
+                setTargetCalories(profileData.target_calories.toString());
+            }
+            if (profileData?.target_protein) {
+                setTargetProtein(profileData.target_protein.toString());
+            }
+            if (profileData?.target_fat) {
+                setTargetFat(profileData.target_fat.toString());
+            }
+            if (profileData?.target_carbs) {
+                setTargetCarbs(profileData.target_carbs.toString());
+            }
             setLoading(false);
         };
 
@@ -65,6 +87,24 @@ export function SettingsPage() {
         await updateProfile(profile.$id, { target_weight: weight });
         setSaving(false);
     }, [user, profile, targetWeight]);
+
+    const handleSaveNutritionGoals = useCallback(async () => {
+        if (!user || !profile) return;
+
+        const calories = parseInt(targetCalories) || null;
+        const protein = parseInt(targetProtein) || null;
+        const fat = parseInt(targetFat) || null;
+        const carbs = parseInt(targetCarbs) || null;
+
+        setSavingNutrition(true);
+        await updateProfile(profile.$id, {
+            target_calories: calories,
+            target_protein: protein,
+            target_fat: fat,
+            target_carbs: carbs,
+        });
+        setSavingNutrition(false);
+    }, [user, profile, targetCalories, targetProtein, targetFat, targetCarbs]);
 
     const handleAddHabit = useCallback(async () => {
         if (!user || !newHabitTitle.trim()) return;
@@ -181,6 +221,108 @@ export function SettingsPage() {
                     </div>
                 </section>
 
+                {/* Nutrition Goals */}
+                <section className="bg-grit-surface rounded-2xl p-6 border border-grit-border">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Flame className="w-5 h-5 text-grit-accent" />
+                        <h2 className="text-lg font-semibold text-grit-text">栄養目標</h2>
+                    </div>
+                    <p className="text-sm text-grit-text-muted mb-4">
+                        1日の目標カロリーとPFCを設定します。進捗がダッシュボードに表示されます。
+                    </p>
+
+                    <div className="space-y-4">
+                        {/* Target Calories */}
+                        <div>
+                            <label className="flex items-center gap-1.5 text-sm font-medium text-grit-text-muted mb-2">
+                                <Flame className="w-4 h-4" />
+                                目標カロリー
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={targetCalories}
+                                    onChange={(e) => setTargetCalories(e.target.value)}
+                                    placeholder="2000"
+                                    min="500"
+                                    max="10000"
+                                    className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors pr-16"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">kcal</span>
+                            </div>
+                        </div>
+
+                        {/* PFC Targets */}
+                        <div className="grid grid-cols-3 gap-3">
+                            {/* Protein */}
+                            <div>
+                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                    <Beef className="w-3.5 h-3.5 text-red-400" />
+                                    P（タンパク質）
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={targetProtein}
+                                        onChange={(e) => setTargetProtein(e.target.value)}
+                                        placeholder="120"
+                                        min="0"
+                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-red-400 transition-colors pr-8 text-sm"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                </div>
+                            </div>
+
+                            {/* Fat */}
+                            <div>
+                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                    <Droplets className="w-3.5 h-3.5 text-yellow-400" />
+                                    F（脂質）
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={targetFat}
+                                        onChange={(e) => setTargetFat(e.target.value)}
+                                        placeholder="60"
+                                        min="0"
+                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-yellow-400 transition-colors pr-8 text-sm"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                </div>
+                            </div>
+
+                            {/* Carbs */}
+                            <div>
+                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                    <Wheat className="w-3.5 h-3.5 text-blue-400" />
+                                    C（炭水化物）
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={targetCarbs}
+                                        onChange={(e) => setTargetCarbs(e.target.value)}
+                                        placeholder="200"
+                                        min="0"
+                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-blue-400 transition-colors pr-8 text-sm"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleSaveNutritionGoals}
+                            disabled={savingNutrition}
+                            className="w-full py-3 bg-grit-accent text-white font-medium rounded-xl hover:bg-grit-accent-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {savingNutrition ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            栄養目標を保存
+                        </button>
+                    </div>
+                </section>
+
                 {/* Habits Management */}
                 <section className="bg-grit-surface rounded-2xl p-6 border border-grit-border">
                     <div className="flex items-center gap-2 mb-4">
@@ -276,6 +418,23 @@ export function SettingsPage() {
                     onSave={handleSaveWorkoutRoutine}
                     onDelete={handleDeleteWorkoutRoutine}
                 />
+
+                {/* Data Export/Import */}
+                {user && (
+                    <DataExportImport
+                        onExport={() => exportAllData(user.$id)}
+                        onImport={(data) => importData(user.$id, data)}
+                    />
+                )}
+
+                {/* Reset Onboarding */}
+                <button
+                    onClick={resetOnboarding}
+                    className="w-full py-3 bg-grit-surface border border-grit-border text-grit-text-muted font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-grit-surface-hover transition-colors"
+                >
+                    <RefreshCw className="w-5 h-5" />
+                    チュートリアルを再表示
+                </button>
 
                 {/* Sign Out */}
                 <button

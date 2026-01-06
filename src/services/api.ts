@@ -65,7 +65,16 @@ export async function createProfile(userId: string): Promise<Profile | null> {
     }
 }
 
-export async function updateProfile(profileId: string, updates: { target_weight?: number | null }): Promise<boolean> {
+export async function updateProfile(
+    profileId: string,
+    updates: {
+        target_weight?: number | null;
+        target_calories?: number | null;
+        target_protein?: number | null;
+        target_fat?: number | null;
+        target_carbs?: number | null;
+    }
+): Promise<boolean> {
     try {
         await databases.updateDocument(
             DATABASE_ID,
@@ -729,6 +738,9 @@ export async function addMealLog(
     mealType: MealType,
     foodName: string,
     calories: number,
+    protein?: number | null,
+    fat?: number | null,
+    carbs?: number | null,
     date?: string
 ): Promise<MealLog | null> {
     const logDate = date || new Date().toISOString().split('T')[0];
@@ -744,6 +756,9 @@ export async function addMealLog(
                 meal_type: mealType,
                 food_name: foodName,
                 calories: calories || 0,
+                protein: protein ?? null,
+                fat: fat ?? null,
+                carbs: carbs ?? null,
             }
         );
         return asMealLog(created);
@@ -755,7 +770,13 @@ export async function addMealLog(
 
 export async function updateMealLog(
     logId: string,
-    updates: { food_name?: string; calories?: number }
+    updates: {
+        food_name?: string;
+        calories?: number;
+        protein?: number | null;
+        fat?: number | null;
+        carbs?: number | null;
+    }
 ): Promise<MealLog | null> {
     try {
         const updated = await databases.updateDocument(
@@ -781,6 +802,250 @@ export async function deleteMealLog(logId: string): Promise<boolean> {
         return true;
     } catch (error) {
         console.error('Error deleting meal log:', error);
+        return false;
+    }
+}
+
+// ============ Diary / Notes API ============
+
+import type { DiaryEntry, AchievementStats, ExportData } from '../types';
+
+// Note: For diary entries, we use localStorage as a simple storage solution
+// You can create a 'diary_entries' collection in Appwrite for persistent cloud storage
+
+export async function getDiaryEntryForDate(userId: string, date: string): Promise<DiaryEntry | null> {
+    try {
+        const key = `diary_${userId}_${date}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching diary entry:', error);
+        return null;
+    }
+}
+
+export async function saveDiaryEntry(
+    userId: string,
+    date: string,
+    mood: 'great' | 'good' | 'neutral' | 'bad' | 'terrible',
+    note: string,
+    energyLevel: number
+): Promise<DiaryEntry | null> {
+    try {
+        const entry: DiaryEntry = {
+            $id: `diary_${userId}_${date}`,
+            $createdAt: new Date().toISOString(),
+            $updatedAt: new Date().toISOString(),
+            $permissions: [],
+            $collectionId: 'diary_entries',
+            $databaseId: DATABASE_ID,
+            user_id: userId,
+            date,
+            mood,
+            note,
+            energy_level: energyLevel,
+        };
+        localStorage.setItem(`diary_${userId}_${date}`, JSON.stringify(entry));
+        return entry;
+    } catch (error) {
+        console.error('Error saving diary entry:', error);
+        return null;
+    }
+}
+
+// ============ Statistics API ============
+
+export async function getStreakData(userId: string): Promise<{ currentStreak: number; longestStreak: number }> {
+    try {
+        const logs = await getWeightLogs(userId, 365);
+        if (logs.length === 0) {
+            return { currentStreak: 0, longestStreak: 0 };
+        }
+
+        // Sort by date descending
+        const sortedDates = logs
+            .map((l) => l.date)
+            .sort((a, b) => b.localeCompare(a));
+
+        const today = new Date().toISOString().split('T')[0];
+        let currentStreak = 0;
+        let longestStreak = 0;
+        let streak = 0;
+        const expectedDate = new Date(today);
+
+        // Calculate current streak
+        for (let i = 0; i < sortedDates.length; i++) {
+            const date = sortedDates[i];
+            const expected = expectedDate.toISOString().split('T')[0];
+
+            if (date === expected) {
+                currentStreak++;
+                expectedDate.setDate(expectedDate.getDate() - 1);
+            } else if (date < expected) {
+                break;
+            }
+        }
+
+        // Calculate longest streak
+        const sortedAsc = [...sortedDates].sort((a, b) => a.localeCompare(b));
+        let prevDate: Date | null = null;
+
+        for (const dateStr of sortedAsc) {
+            const date = new Date(dateStr);
+            if (prevDate) {
+                const diff = (date.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+                if (diff === 1) {
+                    streak++;
+                } else {
+                    longestStreak = Math.max(longestStreak, streak);
+                    streak = 1;
+                }
+            } else {
+                streak = 1;
+            }
+            prevDate = date;
+        }
+        longestStreak = Math.max(longestStreak, streak);
+
+        return { currentStreak, longestStreak };
+    } catch (error) {
+        console.error('Error calculating streak:', error);
+        return { currentStreak: 0, longestStreak: 0 };
+    }
+}
+
+export async function getAchievementStats(userId: string): Promise<AchievementStats> {
+    try {
+        const [weightLogs, streakData, workoutLogs] = await Promise.all([
+            getWeightLogs(userId, 1000),
+            getStreakData(userId),
+            getWorkoutLogs(userId, 1000),
+        ]);
+
+        // Get habit completion count from localStorage
+        const habitCompletionKey = `habit_completions_${userId}`;
+        const storedCompletions = localStorage.getItem(habitCompletionKey);
+        const totalHabitsCompleted = storedCompletions ? parseInt(storedCompletions, 10) : 0;
+
+        // Get meal log count from localStorage
+        const mealCountKey = `meal_count_${userId}`;
+        const storedMealCount = localStorage.getItem(mealCountKey);
+        const totalMeals = storedMealCount ? parseInt(storedMealCount, 10) : 0;
+
+        // Calculate weight stats
+        const sortedWeights = [...weightLogs].sort((a, b) => a.date.localeCompare(b.date));
+        const startWeight = sortedWeights[0]?.weight || null;
+        const currentWeight = sortedWeights[sortedWeights.length - 1]?.weight || null;
+        const totalWeightLoss = startWeight && currentWeight ? startWeight - currentWeight : 0;
+
+        // Get profile for target weight
+        const profile = await getProfile(userId);
+
+        return {
+            totalDaysRecorded: weightLogs.length,
+            currentStreak: streakData.currentStreak,
+            longestStreak: streakData.longestStreak,
+            totalWeightLoss: Math.max(0, totalWeightLoss),
+            totalHabitsCompleted,
+            totalWorkouts: workoutLogs.length,
+            totalMeals,
+            currentWeight,
+            targetWeight: profile?.target_weight || null,
+            startWeight,
+        };
+    } catch (error) {
+        console.error('Error getting achievement stats:', error);
+        return {
+            totalDaysRecorded: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            totalWeightLoss: 0,
+            totalHabitsCompleted: 0,
+            totalWorkouts: 0,
+            totalMeals: 0,
+            currentWeight: null,
+            targetWeight: null,
+            startWeight: null,
+        };
+    }
+}
+
+// Track habit completions for achievements
+export function incrementHabitCompletions(userId: string, count: number = 1): void {
+    const key = `habit_completions_${userId}`;
+    const current = parseInt(localStorage.getItem(key) || '0', 10);
+    localStorage.setItem(key, (current + count).toString());
+}
+
+// Track meal count for achievements
+export function incrementMealCount(userId: string, count: number = 1): void {
+    const key = `meal_count_${userId}`;
+    const current = parseInt(localStorage.getItem(key) || '0', 10);
+    localStorage.setItem(key, (current + count).toString());
+}
+
+// ============ Data Export/Import API ============
+
+export async function exportAllData(userId: string): Promise<ExportData> {
+    const [profile, weightLogs, habits, workoutLogs] = await Promise.all([
+        getProfile(userId),
+        getWeightLogs(userId, 10000),
+        getAllHabits(userId),
+        getWorkoutLogs(userId, 10000),
+    ]);
+
+    // Collect diary entries from localStorage
+    const diaryEntries: DiaryEntry[] = [];
+    const diaryPrefix = `diary_${userId}_`;
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(diaryPrefix)) {
+            const entry = localStorage.getItem(key);
+            if (entry) {
+                try {
+                    diaryEntries.push(JSON.parse(entry));
+                } catch {
+                    // Skip invalid entries
+                }
+            }
+        }
+    }
+
+    return {
+        exportedAt: new Date().toISOString(),
+        profile,
+        weightLogs,
+        habits,
+        habitLogs: [],
+        workoutLogs,
+        mealLogs: [],
+        diaryEntries,
+    };
+}
+
+export async function importData(userId: string, data: ExportData): Promise<boolean> {
+    try {
+        // Import weight logs
+        for (const log of data.weightLogs) {
+            await addWeightLog(userId, log.weight, log.fat_percentage ?? undefined, log.date);
+        }
+
+        // Import diary entries
+        for (const entry of data.diaryEntries) {
+            await saveDiaryEntry(userId, entry.date, entry.mood, entry.note, entry.energy_level);
+        }
+
+        // Import workout logs
+        for (const log of data.workoutLogs) {
+            await addWorkoutLog(userId, log.title, log.description, log.duration_min, log.date);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error importing data:', error);
         return false;
     }
 }
