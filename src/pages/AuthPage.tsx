@@ -59,9 +59,6 @@ export function AuthPage() {
             .trim()
             .toLowerCase();
 
-        // Debug: Verify the cleaned email
-        // alert(`送信するメールアドレス:\n${cleanEmail}`);
-
         // Basic validation before sending
         if (!cleanEmail.includes('.') || !cleanEmail.includes('@')) {
             setError('有効なメールアドレスを入力してください（例: name@example.com）');
