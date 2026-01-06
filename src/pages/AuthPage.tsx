@@ -49,8 +49,17 @@ export function AuthPage() {
         setError('');
         setLoading(true);
 
-        // Remove whitespace
-        const cleanEmail = email.trim();
+        // Normalize email:
+        // 1. Convert full-width characters to half-width
+        // 2. Remove whitespace
+        // 3. Convert to lowercase
+        const cleanEmail = email
+            .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/\s+/g, '') // Remove all whitespace (including full-width)
+            .trim()
+            .toLowerCase();
+
+        console.log('Attemping auth with email:', cleanEmail); // Debug log
 
         try {
             if (mode === 'signup') {
@@ -71,7 +80,7 @@ export function AuthPage() {
             } else if (err?.code === 401) {
                 setError('メールアドレスまたはパスワードが間違っています。');
             } else if (err?.type === 'param_email') {
-                setError('正しいメールアドレスを入力してください。');
+                setError('メールアドレスの形式が正しくありません。半角英数字で入力してください。');
             } else if (err?.message) {
                 setError(err.message);
             } else {
