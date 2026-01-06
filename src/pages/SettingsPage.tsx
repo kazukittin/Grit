@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
@@ -23,7 +23,7 @@ import type { Profile, Habit, WorkoutRoutine } from '../types';
 
 export function SettingsPage() {
     const navigate = useNavigate();
-    const { user, signOut } = useAuth();
+    const { user, signOut, deleteAccount } = useAuth();
     const { resetOnboarding } = useOnboarding();
     const { resetSetup } = useInitialSetup();
 
@@ -33,6 +33,9 @@ export function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [savingNutrition, setSavingNutrition] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [targetWeight, setTargetWeight] = useState('');
     const [targetCalories, setTargetCalories] = useState('');
@@ -458,7 +461,112 @@ export function SettingsPage() {
                     <LogOut className="w-5 h-5" />
                     ログアウト
                 </button>
+
+                {/* Danger Zone - Account Deletion */}
+                <div className="pt-6 border-t border-grit-border">
+                    <h3 className="text-sm font-medium text-grit-negative mb-3 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        危険な操作
+                    </h3>
+                    <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="w-full py-4 bg-grit-negative/10 border border-grit-negative/30 text-grit-negative font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-grit-negative/20 transition-colors"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                        アカウントを削除
+                    </button>
+                    <p className="text-xs text-grit-text-muted mt-2 text-center">
+                        全てのデータが完全に削除されます。この操作は取り消せません。
+                    </p>
+                </div>
             </main>
+
+            {/* Delete Account Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md glass-card rounded-3xl overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-grit-negative/20 flex items-center justify-center">
+                                    <AlertTriangle className="w-6 h-6 text-grit-negative" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-grit-text">アカウント削除</h2>
+                                    <p className="text-sm text-grit-text-muted">この操作は取り消せません</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="p-4 bg-grit-negative/10 rounded-xl border border-grit-negative/30">
+                                    <p className="text-sm text-grit-text">
+                                        アカウントを削除すると、以下の全てのデータが完全に削除されます：
+                                    </p>
+                                    <ul className="mt-2 text-sm text-grit-text-muted list-disc list-inside space-y-1">
+                                        <li>体重記録</li>
+                                        <li>食事記録</li>
+                                        <li>習慣データ</li>
+                                        <li>ワークアウト記録</li>
+                                        <li>プロフィール設定</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm text-grit-text-muted mb-2">
+                                        確認のため「削除」と入力してください
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={deleteConfirmText}
+                                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                        placeholder="削除"
+                                        className="w-full px-4 py-3 bg-grit-surface border border-grit-border rounded-xl text-grit-text focus:outline-none focus:ring-2 focus:ring-grit-negative/50"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setDeleteConfirmText('');
+                                        }}
+                                        disabled={isDeleting}
+                                        className="flex-1 py-3 bg-grit-surface border border-grit-border text-grit-text-muted font-medium rounded-xl hover:bg-grit-surface-hover transition-colors disabled:opacity-50"
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (deleteConfirmText !== '削除') return;
+                                            setIsDeleting(true);
+                                            const result = await deleteAccount();
+                                            setIsDeleting(false);
+                                            if (result.success) {
+                                                navigate('/auth');
+                                            } else {
+                                                alert(result.error || 'アカウント削除に失敗しました');
+                                            }
+                                        }}
+                                        disabled={deleteConfirmText !== '削除' || isDeleting}
+                                        className="flex-1 py-3 bg-grit-negative text-white font-medium rounded-xl hover:bg-grit-negative/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {isDeleting ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                削除中...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="w-5 h-5" />
+                                                完全に削除する
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

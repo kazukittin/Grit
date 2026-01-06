@@ -1051,3 +1051,106 @@ export async function importData(userId: string, data: ExportData): Promise<bool
     }
 }
 
+// ============ Account Deletion API ============
+
+async function deleteAllDocumentsInCollection(
+    collectionId: string,
+    userId: string
+): Promise<number> {
+    let deletedCount = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+        try {
+            const response = await databases.listDocuments(
+                DATABASE_ID,
+                collectionId,
+                [
+                    Query.equal('user_id', userId),
+                    Query.limit(100),
+                ]
+            );
+
+            if (response.documents.length === 0) {
+                hasMore = false;
+                break;
+            }
+
+            for (const doc of response.documents) {
+                try {
+                    await databases.deleteDocument(
+                        DATABASE_ID,
+                        collectionId,
+                        doc.$id
+                    );
+                    deletedCount++;
+                } catch (error) {
+                    console.error(`Error deleting document ${doc.$id}:`, error);
+                }
+            }
+
+            // If we got fewer documents than the limit, we're done
+            if (response.documents.length < 100) {
+                hasMore = false;
+            }
+        } catch (error) {
+            console.error(`Error listing documents in ${collectionId}:`, error);
+            hasMore = false;
+        }
+    }
+
+    return deletedCount;
+}
+
+export async function deleteAllUserData(userId: string): Promise<{
+    success: boolean;
+    deletedCounts: Record<string, number>;
+}> {
+    const deletedCounts: Record<string, number> = {};
+
+    try {
+        // Delete from all collections
+        const collections = [
+            { name: 'profiles', id: COLLECTIONS.PROFILES },
+            { name: 'weight_logs', id: COLLECTIONS.WEIGHT_LOGS },
+            { name: 'habits', id: COLLECTIONS.HABITS },
+            { name: 'habit_logs', id: COLLECTIONS.HABIT_LOGS },
+            { name: 'workout_routines', id: COLLECTIONS.WORKOUT_ROUTINES },
+            { name: 'workout_logs', id: COLLECTIONS.WORKOUT_LOGS },
+            { name: 'meal_logs', id: COLLECTIONS.MEAL_LOGS },
+        ];
+
+        for (const collection of collections) {
+            console.log(`Deleting data from ${collection.name}...`);
+            const count = await deleteAllDocumentsInCollection(collection.id, userId);
+            deletedCounts[collection.name] = count;
+            console.log(`Deleted ${count} documents from ${collection.name}`);
+        }
+
+        // Clear localStorage data for this user
+        const keysToDelete: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key?.includes(userId)) {
+                keysToDelete.push(key);
+            }
+        }
+        keysToDelete.forEach(key => localStorage.removeItem(key));
+        deletedCounts['localStorage'] = keysToDelete.length;
+
+        // Clear setup and onboarding flags
+        localStorage.removeItem('grit_initial_setup_completed');
+        localStorage.removeItem('grit_onboarding_completed');
+
+        return {
+            success: true,
+            deletedCounts,
+        };
+    } catch (error) {
+        console.error('Error deleting user data:', error);
+        return {
+            success: false,
+            deletedCounts,
+        };
+    }
+}

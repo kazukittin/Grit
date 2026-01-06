@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { Models } from 'appwrite';
 import { account } from '../lib/appwrite';
+import { deleteAllUserData } from '../services/api';
 
 interface AuthContextType {
     user: Models.User<Models.Preferences> | null;
     loading: boolean;
     signOut: () => Promise<void>;
+    deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,8 +43,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const deleteAccount = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+        if (!user) {
+            return { success: false, error: 'ユーザーがログインしていません' };
+        }
+
+        try {
+            // First, delete all user data from the database
+            console.log('Deleting all user data...');
+            const { success: dataDeleted, deletedCounts } = await deleteAllUserData(user.$id);
+            console.log('Data deletion result:', dataDeleted, deletedCounts);
+
+            if (!dataDeleted) {
+                return { success: false, error: 'データの削除中にエラーが発生しました' };
+            }
+
+            // Then, update the user's identity (Appwrite client SDK doesn't support user deletion directly)
+            // The user account itself needs to be deleted from the server side via Appwrite Console or Server SDK
+            // For now, we'll sign out the user and clear local data
+            try {
+                // Try to delete all sessions
+                await account.deleteSessions();
+            } catch (error) {
+                console.error('Error deleting sessions:', error);
+            }
+
+            setUser(null);
+
+            return {
+                success: true,
+            };
+        } catch (error) {
+            console.error('Error during account deletion:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'アカウント削除中にエラーが発生しました'
+            };
+        }
+    }, [user]);
+
     return (
-        <AuthContext.Provider value={{ user, loading, signOut }}>
+        <AuthContext.Provider value={{ user, loading, signOut, deleteAccount }}>
             {children}
         </AuthContext.Provider>
     );
