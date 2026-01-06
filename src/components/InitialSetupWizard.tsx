@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronRight,
@@ -10,6 +10,7 @@ import {
     Scale,
     Ruler,
     User,
+    Calculator,
 } from 'lucide-react';
 
 interface InitialSetupWizardProps {
@@ -40,10 +41,13 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
     const [currentWeight, setCurrentWeight] = useState('');
     const [height, setHeight] = useState('');
     const [targetWeight, setTargetWeight] = useState('');
-    const [targetCalories, setTargetCalories] = useState('2000');
-    const [targetProtein, setTargetProtein] = useState('120');
-    const [targetFat, setTargetFat] = useState('60');
-    const [targetCarbs, setTargetCarbs] = useState('200');
+    const [targetCalories, setTargetCalories] = useState('');
+    const [targetProtein, setTargetProtein] = useState('');
+    const [targetFat, setTargetFat] = useState('');
+    const [targetCarbs, setTargetCarbs] = useState('');
+    const [age, setAge] = useState('30');
+    const [gender, setGender] = useState<'male' | 'female'>('male');
+    const [isAutoCalculated, setIsAutoCalculated] = useState(false);
 
     const currentStepIndex = STEPS.indexOf(currentStep);
     const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
@@ -88,6 +92,72 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
         if (bmi < 25) return { label: '標準', color: 'text-green-400' };
         if (bmi < 30) return { label: '肥満(1度)', color: 'text-yellow-400' };
         return { label: '肥満(2度以上)', color: 'text-red-400' };
+    };
+
+    // Calculate nutrition goals based on height, weight, age, and gender using Mifflin-St Jeor equation
+    const calculateNutritionGoals = () => {
+        const weightKg = parseFloat(currentWeight);
+        const heightCm = parseFloat(height);
+        const ageYears = parseInt(age) || 30;
+
+        if (!weightKg || !heightCm) return null;
+
+        // Mifflin-St Jeor Equation for BMR
+        let bmr: number;
+        if (gender === 'male') {
+            bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears + 5;
+        } else {
+            bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears - 161;
+        }
+
+        // TDEE with moderate activity level (1.55)
+        const tdee = bmr * 1.55;
+
+        // For weight loss: subtract 500kcal (about 0.5kg/week)
+        const targetCaloriesNum = Math.round(tdee - 500);
+
+        // Protein: 2g per kg body weight for muscle preservation during diet
+        const proteinNum = Math.round(weightKg * 2);
+
+        // Fat: 25% of calories (9 kcal/g)
+        const fatNum = Math.round((targetCaloriesNum * 0.25) / 9);
+
+        // Carbs: remaining calories (4 kcal/g)
+        const proteinCals = proteinNum * 4;
+        const fatCals = fatNum * 9;
+        const carbsNum = Math.round((targetCaloriesNum - proteinCals - fatCals) / 4);
+
+        return {
+            calories: Math.max(1200, targetCaloriesNum), // Minimum 1200 kcal
+            protein: proteinNum,
+            fat: fatNum,
+            carbs: Math.max(50, carbsNum), // Minimum 50g carbs
+        };
+    };
+
+    // Auto-calculate nutrition goals when moving to nutrition step
+    useEffect(() => {
+        if (currentStep === 'nutrition' && !isAutoCalculated && currentWeight && height) {
+            const goals = calculateNutritionGoals();
+            if (goals) {
+                setTargetCalories(goals.calories.toString());
+                setTargetProtein(goals.protein.toString());
+                setTargetFat(goals.fat.toString());
+                setTargetCarbs(goals.carbs.toString());
+                setIsAutoCalculated(true);
+            }
+        }
+    }, [currentStep, currentWeight, height, age, gender, isAutoCalculated]);
+
+    // Recalculate when user clicks recalculate button
+    const handleRecalculate = () => {
+        const goals = calculateNutritionGoals();
+        if (goals) {
+            setTargetCalories(goals.calories.toString());
+            setTargetProtein(goals.protein.toString());
+            setTargetFat(goals.fat.toString());
+            setTargetCarbs(goals.carbs.toString());
+        }
     };
 
     const slideVariants = {
@@ -163,7 +233,7 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                                         type="number"
                                         step="0.1"
                                         value={currentWeight}
-                                        onChange={(e) => setCurrentWeight(e.target.value)}
+                                        onChange={(e) => { setCurrentWeight(e.target.value); setIsAutoCalculated(false); }}
                                         placeholder="65.0"
                                         className="w-full px-4 py-3 pr-14 bg-grit-surface-hover border border-grit-border rounded-xl text-grit-text text-lg placeholder:text-grit-text-dim focus:outline-none focus:ring-2 focus:ring-grit-accent/50"
                                     />
@@ -184,13 +254,63 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                                         type="number"
                                         step="0.1"
                                         value={height}
-                                        onChange={(e) => setHeight(e.target.value)}
+                                        onChange={(e) => { setHeight(e.target.value); setIsAutoCalculated(false); }}
                                         placeholder="170.0"
                                         className="w-full px-4 py-3 pr-14 bg-grit-surface-hover border border-grit-border rounded-xl text-grit-text text-lg placeholder:text-grit-text-dim focus:outline-none focus:ring-2 focus:ring-grit-accent/50"
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">
                                         cm
                                     </span>
+                                </div>
+                            </div>
+
+                            {/* Age and Gender for nutrition calculation */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                        年齢
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={age}
+                                            onChange={(e) => { setAge(e.target.value); setIsAutoCalculated(false); }}
+                                            placeholder="30"
+                                            min="10"
+                                            max="100"
+                                            className="w-full px-4 py-3 pr-12 bg-grit-surface-hover border border-grit-border rounded-xl text-grit-text text-lg placeholder:text-grit-text-dim focus:outline-none focus:ring-2 focus:ring-grit-accent/50"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted text-sm">
+                                            歳
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                        性別
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setGender('male'); setIsAutoCalculated(false); }}
+                                            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${gender === 'male'
+                                                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                                    : 'bg-grit-surface-hover border-grit-border text-grit-text-muted'
+                                                }`}
+                                        >
+                                            男性
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setGender('female'); setIsAutoCalculated(false); }}
+                                            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${gender === 'female'
+                                                    ? 'bg-pink-500/20 border-pink-500 text-pink-400'
+                                                    : 'bg-grit-surface-hover border-grit-border text-grit-text-muted'
+                                                }`}
+                                        >
+                                            女性
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -314,7 +434,7 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
             case 'nutrition':
                 return (
                     <div>
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-3 mb-4">
                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
                                 <Flame className="w-6 h-6 text-white" />
                             </div>
@@ -323,6 +443,30 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
                                 <p className="text-sm text-grit-text-muted">1日の目標カロリーとPFCを設定</p>
                             </div>
                         </div>
+
+                        {/* Auto-calculated badge and recalculate button */}
+                        {currentWeight && height && (
+                            <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Calculator className="w-4 h-4 text-green-400" />
+                                        <span className="text-sm text-green-400">
+                                            身長・体重から自動計算しました
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleRecalculate}
+                                        className="text-xs text-green-400 hover:text-green-300 underline"
+                                    >
+                                        再計算
+                                    </button>
+                                </div>
+                                <p className="text-xs text-grit-text-muted mt-1">
+                                    ※ 減量目標（-500kcal/日）で計算。手動で調整も可能です。
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-4 mb-6">
                             {/* Calories */}

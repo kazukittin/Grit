@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle, Calculator, Ruler } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
@@ -45,6 +45,9 @@ export function SettingsPage() {
     const [newHabitTitle, setNewHabitTitle] = useState('');
     const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
     const [editingHabitTitle, setEditingHabitTitle] = useState('');
+    const [height, setHeight] = useState('');
+    const [age, setAge] = useState('30');
+    const [gender, setGender] = useState<'male' | 'female'>('male');
 
     useEffect(() => {
         if (!user) return;
@@ -74,6 +77,9 @@ export function SettingsPage() {
             if (profileData?.target_carbs) {
                 setTargetCarbs(profileData.target_carbs.toString());
             }
+            if (profileData?.height) {
+                setHeight(profileData.height.toString());
+            }
             setLoading(false);
         };
 
@@ -100,6 +106,7 @@ export function SettingsPage() {
         const protein = parseInt(targetProtein) || null;
         const fat = parseInt(targetFat) || null;
         const carbs = parseInt(targetCarbs) || null;
+        const heightValue = parseFloat(height) || null;
 
         setSavingNutrition(true);
         await updateProfile(profile.$id, {
@@ -107,9 +114,52 @@ export function SettingsPage() {
             target_protein: protein,
             target_fat: fat,
             target_carbs: carbs,
+            height: heightValue,
         });
         setSavingNutrition(false);
-    }, [user, profile, targetCalories, targetProtein, targetFat, targetCarbs]);
+    }, [user, profile, targetCalories, targetProtein, targetFat, targetCarbs, height]);
+
+    // Calculate nutrition goals based on height, weight, age, and gender using Mifflin-St Jeor equation
+    const calculateNutritionGoals = useCallback(() => {
+        const heightCm = parseFloat(height);
+        const weightKg = parseFloat(targetWeight); // Use target weight as the baseline
+        const ageYears = parseInt(age) || 30;
+
+        if (!heightCm || !weightKg) {
+            alert('身長と目標体重を先に入力してください');
+            return;
+        }
+
+        // Mifflin-St Jeor Equation for BMR
+        let bmr: number;
+        if (gender === 'male') {
+            bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears + 5;
+        } else {
+            bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears - 161;
+        }
+
+        // TDEE with moderate activity level (1.55)
+        const tdee = bmr * 1.55;
+
+        // For weight loss: subtract 500kcal (about 0.5kg/week)
+        const targetCaloriesNum = Math.round(tdee - 500);
+
+        // Protein: 2g per kg body weight for muscle preservation during diet
+        const proteinNum = Math.round(weightKg * 2);
+
+        // Fat: 25% of calories (9 kcal/g)
+        const fatNum = Math.round((targetCaloriesNum * 0.25) / 9);
+
+        // Carbs: remaining calories (4 kcal/g)
+        const proteinCals = proteinNum * 4;
+        const fatCals = fatNum * 9;
+        const carbsNum = Math.round((targetCaloriesNum - proteinCals - fatCals) / 4);
+
+        setTargetCalories(Math.max(1200, targetCaloriesNum).toString());
+        setTargetProtein(proteinNum.toString());
+        setTargetFat(fatNum.toString());
+        setTargetCarbs(Math.max(50, carbsNum).toString());
+    }, [height, targetWeight, age, gender]);
 
     const handleAddHabit = useCallback(async () => {
         if (!user || !newHabitTitle.trim()) return;
@@ -237,82 +287,166 @@ export function SettingsPage() {
                     </p>
 
                     <div className="space-y-4">
-                        {/* Target Calories */}
+                        {/* Height Input */}
                         <div>
                             <label className="flex items-center gap-1.5 text-sm font-medium text-grit-text-muted mb-2">
-                                <Flame className="w-4 h-4" />
-                                目標カロリー
+                                <Ruler className="w-4 h-4" />
+                                身長（自動計算に使用）
                             </label>
                             <div className="relative">
                                 <input
                                     type="number"
-                                    value={targetCalories}
-                                    onChange={(e) => setTargetCalories(e.target.value)}
-                                    placeholder="2000"
-                                    min="500"
-                                    max="10000"
-                                    className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors pr-16"
+                                    step="0.1"
+                                    value={height}
+                                    onChange={(e) => setHeight(e.target.value)}
+                                    placeholder="170.0"
+                                    min="100"
+                                    max="250"
+                                    className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors pr-12"
                                 />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">kcal</span>
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">cm</span>
                             </div>
                         </div>
 
-                        {/* PFC Targets */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {/* Protein */}
+                        {/* Age and Gender for calculation */}
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
-                                    <Beef className="w-3.5 h-3.5 text-red-400" />
-                                    P（タンパク質）
+                                <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                    年齢
                                 </label>
                                 <div className="relative">
                                     <input
                                         type="number"
-                                        value={targetProtein}
-                                        onChange={(e) => setTargetProtein(e.target.value)}
-                                        placeholder="120"
-                                        min="0"
-                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-red-400 transition-colors pr-8 text-sm"
+                                        value={age}
+                                        onChange={(e) => setAge(e.target.value)}
+                                        placeholder="30"
+                                        min="10"
+                                        max="100"
+                                        className="w-full px-4 py-3 pr-10 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
                                     />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted text-sm">歳</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                    性別
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setGender('male')}
+                                        className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${gender === 'male'
+                                            ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                                            : 'bg-grit-bg border-grit-border text-grit-text-muted hover:border-grit-accent'
+                                            }`}
+                                    >
+                                        男性
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGender('female')}
+                                        className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${gender === 'female'
+                                            ? 'bg-pink-500/20 border-pink-500 text-pink-400'
+                                            : 'bg-grit-bg border-grit-border text-grit-text-muted hover:border-grit-accent'
+                                            }`}
+                                    >
+                                        女性
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Auto Calculate Button */}
+                        <button
+                            type="button"
+                            onClick={calculateNutritionGoals}
+                            className="w-full py-3 bg-green-500/20 border border-green-500/50 text-green-400 font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-500/30 transition-colors"
+                        >
+                            <Calculator className="w-4 h-4" />
+                            身長・体重から自動計算
+                        </button>
+                        <p className="text-xs text-grit-text-dim text-center">
+                            ※ Mifflin-St Jeor式を使用。減量目標（-500kcal/日）で計算します。
+                        </p>
+
+                        <div className="border-t border-grit-border pt-4">
+                            {/* Target Calories */}
+                            <div className="mb-4">
+                                <label className="flex items-center gap-1.5 text-sm font-medium text-grit-text-muted mb-2">
+                                    <Flame className="w-4 h-4" />
+                                    目標カロリー
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={targetCalories}
+                                        onChange={(e) => setTargetCalories(e.target.value)}
+                                        placeholder="2000"
+                                        min="500"
+                                        max="10000"
+                                        className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors pr-16"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-grit-text-muted">kcal</span>
                                 </div>
                             </div>
 
-                            {/* Fat */}
-                            <div>
-                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
-                                    <Droplets className="w-3.5 h-3.5 text-yellow-400" />
-                                    F（脂質）
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={targetFat}
-                                        onChange={(e) => setTargetFat(e.target.value)}
-                                        placeholder="60"
-                                        min="0"
-                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-yellow-400 transition-colors pr-8 text-sm"
-                                    />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                            {/* PFC Targets */}
+                            <div className="grid grid-cols-3 gap-3">
+                                {/* Protein */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Beef className="w-3.5 h-3.5 text-red-400" />
+                                        P（タンパク質）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={targetProtein}
+                                            onChange={(e) => setTargetProtein(e.target.value)}
+                                            placeholder="120"
+                                            min="0"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-red-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Carbs */}
-                            <div>
-                                <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
-                                    <Wheat className="w-3.5 h-3.5 text-blue-400" />
-                                    C（炭水化物）
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={targetCarbs}
-                                        onChange={(e) => setTargetCarbs(e.target.value)}
-                                        placeholder="200"
-                                        min="0"
-                                        className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-blue-400 transition-colors pr-8 text-sm"
-                                    />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                {/* Fat */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Droplets className="w-3.5 h-3.5 text-yellow-400" />
+                                        F（脂質）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={targetFat}
+                                            onChange={(e) => setTargetFat(e.target.value)}
+                                            placeholder="60"
+                                            min="0"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-yellow-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                    </div>
+                                </div>
+
+                                {/* Carbs */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-medium text-grit-text-muted mb-1.5">
+                                        <Wheat className="w-3.5 h-3.5 text-blue-400" />
+                                        C（炭水化物）
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={targetCarbs}
+                                            onChange={(e) => setTargetCarbs(e.target.value)}
+                                            placeholder="200"
+                                            min="0"
+                                            className="w-full px-3 py-2.5 bg-grit-bg border border-grit-border rounded-lg text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-blue-400 transition-colors pr-8 text-sm"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-grit-text-dim">g</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -80,12 +80,24 @@ export function AuthPage() {
             window.location.reload();
         } catch (err: any) {
             console.error('Auth error:', err);
+
+            // Appwrite specific error mapping
             if (err?.code === 409) {
                 setError('このメールアドレスは既に登録されています。');
             } else if (err?.code === 401) {
                 setError('メールアドレスまたはパスワードが間違っています。');
-            } else if (err?.type === 'param_email') {
+            } else if (err?.type === 'param_email' || err?.message?.includes("'email' param")) {
                 setError('有効なメールアドレスを入力してください（例: name@example.com）');
+            } else if (err?.type === 'param_name') {
+                setError('お名前は128文字以内で入力してください。');
+            } else if (err?.type === 'password_recently_used') {
+                setError('このパスワードは最近使用されています。別のパスワードを使用してください。');
+            } else if (err?.type === 'password_personal_details') {
+                setError('パスワードに個人情報（名前やメールアドレスなど）を含めることはできません。');
+            } else if (err?.type === 'password_too_short' || (err?.message && err.message.length < 8 && mode === 'signup')) {
+                setError('パスワードは8文字以上で入力してください。');
+            } else if (err?.message === "There was an error processing your request. Please check the inputs and try again.") {
+                setError('入力内容に誤りがある可能性があります。またはサーバーで一時的なエラーが発生しています。詳細: ' + (err.type || 'unknown'));
             } else if (err?.message) {
                 setError(err.message);
             } else {
