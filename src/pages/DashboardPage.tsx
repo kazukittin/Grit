@@ -17,6 +17,7 @@ import { CalorieRingChart } from '../components/CalorieRingChart';
 import { DiaryModal, MoodCard } from '../components/DiaryModal';
 import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
 import { AchievementManager } from '../components/Achievements';
+import { InitialSetupWizard, useInitialSetup } from '../components/InitialSetupWizard';
 import {
     SkeletonSummaryCard,
     SkeletonChart,
@@ -51,8 +52,10 @@ import {
     getAchievementStats,
     incrementHabitCompletions,
     incrementMealCount,
+    updateProfile,
 } from '../services/api';
 import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, DiaryEntry, AchievementStats } from '../types';
+import type { SetupData } from '../components/InitialSetupWizard';
 
 export function DashboardPage() {
     const { user } = useAuth();
@@ -60,6 +63,9 @@ export function DashboardPage() {
 
     // Onboarding
     const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
+
+    // Initial setup wizard
+    const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup();
 
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -103,6 +109,10 @@ export function DashboardPage() {
             // Load or create profile
             const profileData = await getOrCreateProfile(user.$id);
             setProfile(profileData);
+
+            // Check if initial setup should be shown
+            const hasTargets = !!(profileData?.target_weight || profileData?.target_calories);
+            checkSetupStatus(hasTargets);
 
             // Load weight logs
             const logs = await getWeightLogs(user.$id, 2);
@@ -269,6 +279,31 @@ export function DashboardPage() {
             setTodayMeals(prev => prev.filter(m => m.$id !== mealId));
         }
     }, []);
+
+    // Handle initial setup completion
+    const handleCompleteSetup = useCallback(async (data: SetupData) => {
+        if (!profile) return;
+
+        await updateProfile(profile.$id, {
+            target_weight: data.targetWeight,
+            target_calories: data.targetCalories,
+            target_protein: data.targetProtein,
+            target_fat: data.targetFat,
+            target_carbs: data.targetCarbs,
+        });
+
+        // Update local profile state
+        setProfile({
+            ...profile,
+            target_weight: data.targetWeight,
+            target_calories: data.targetCalories,
+            target_protein: data.targetProtein,
+            target_fat: data.targetFat,
+            target_carbs: data.targetCarbs,
+        });
+
+        completeSetup();
+    }, [profile, completeSetup]);
 
     // Calculate PFC summary from today's meals
     const pfcSummary: PFCSummary = useMemo(() => {
@@ -472,6 +507,13 @@ export function DashboardPage() {
                     }}
                 />
             )}
+
+            {/* Initial Setup Wizard for new users */}
+            <InitialSetupWizard
+                isOpen={showSetup}
+                onComplete={handleCompleteSetup}
+                onSkip={skipSetup}
+            />
         </div>
     );
 }

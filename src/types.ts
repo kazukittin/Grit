@@ -34,7 +34,16 @@ export interface WorkoutRoutine extends Models.Document {
     user_id: string;
     day_of_week: number; // 0-6 (Sunday = 0)
     title: string;
-    description: string;
+    description: string; // JSON string of ExerciseItem[]
+}
+
+// For storing exercises in WorkoutRoutine.description as JSON
+export interface ExerciseItem {
+    id: string;
+    name: string;
+    reps: number; // 回数 or 秒数
+    sets: number; // セット数
+    calories: number; // 消費カロリー
 }
 
 export interface WorkoutLog extends Models.Document {

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import type { WorkoutRoutine, WorkoutLog } from '../types';
+import type { WorkoutRoutine, WorkoutLog, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
 
 interface TodayWorkoutProps {
@@ -11,6 +11,18 @@ interface TodayWorkoutProps {
     onEdit: () => void;
 }
 
+function parseExercises(description: string): ExerciseItem[] {
+    try {
+        const parsed = JSON.parse(description);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+    } catch {
+        // 古い形式のデータの場合は空配列を返す
+    }
+    return [];
+}
+
 export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWorkoutProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -18,11 +30,25 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
     const dayOfWeek = today.getDay();
     const dayName = DAY_NAMES[dayOfWeek];
 
+    const exercises = useMemo(() => {
+        if (!routine) return [];
+        return parseExercises(routine.description);
+    }, [routine]);
+
+    const totalCalories = useMemo(() => {
+        return exercises.reduce((sum, ex) => sum + (ex.calories * ex.sets), 0);
+    }, [exercises]);
+
+    const estimatedDuration = useMemo(() => {
+        // 1エクササイズあたり約5分と仮定
+        return Math.max(exercises.length * 5, 15);
+    }, [exercises]);
+
     const handleQuickComplete = async () => {
         if (!routine || isSubmitting) return;
 
         setIsSubmitting(true);
-        await onComplete(routine.title, routine.description, 30); // Default 30 minutes
+        await onComplete(routine.title, routine.description, estimatedDuration);
         setIsSubmitting(false);
 
         // Fire celebratory confetti
@@ -36,6 +62,9 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
 
     // Already completed today
     if (todayLog) {
+        const logExercises = parseExercises(todayLog.description);
+        const logTotalCalories = logExercises.reduce((sum, ex) => sum + (ex.calories * ex.sets), 0);
+
         return (
             <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border-2 border-grit-positive/50 animate-fade-in backdrop-blur-xl">
                 <div className="flex items-center gap-2 mb-4">
@@ -45,18 +74,36 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                 </div>
 
                 <div className="bg-grit-positive/10 rounded-xl p-4 border border-grit-positive/30">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className="font-semibold text-grit-text">{todayLog.title}</h3>
-                            {todayLog.description && (
-                                <p className="text-sm text-grit-text-muted mt-1">{todayLog.description}</p>
+                    <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-semibold text-grit-text">{todayLog.title}</h3>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 text-grit-positive">
+                                <Clock className="w-4 h-4" />
+                                <span className="text-sm font-medium">{todayLog.duration_min}分</span>
+                            </div>
+                            {logTotalCalories > 0 && (
+                                <div className="flex items-center gap-1 text-orange-400">
+                                    <Flame className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{logTotalCalories}kcal</span>
+                                </div>
                             )}
                         </div>
-                        <div className="flex items-center gap-1 text-grit-positive">
-                            <Clock className="w-4 h-4" />
-                            <span className="text-sm font-medium">{todayLog.duration_min}分</span>
-                        </div>
                     </div>
+
+                    {logExercises.length > 0 && (
+                        <div className="space-y-1 mb-3">
+                            {logExercises.map((ex, i) => (
+                                <div key={ex.id || i} className="text-sm text-grit-text-muted flex items-center gap-2">
+                                    <span className="text-grit-positive">✓</span>
+                                    <span>{ex.name}</span>
+                                    <span className="text-xs text-grit-text-dim">
+                                        {ex.reps}回 × {ex.sets}セット
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <p className="text-center text-grit-positive font-semibold mt-4">
                         🎉 完了済み！お疲れ様でした！
                     </p>
@@ -76,10 +123,53 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                 </div>
 
                 <div className="bg-gradient-to-br from-grit-accent/10 to-grit-accent-dark/10 rounded-xl p-4 border border-grit-accent/30 mb-4">
-                    <h3 className="text-xl font-bold text-grit-text">{routine.title}</h3>
-                    {routine.description && (
-                        <p className="text-sm text-grit-text-muted mt-2 whitespace-pre-line">
-                            {routine.description}
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xl font-bold text-grit-text">{routine.title}</h3>
+                        <div className="flex items-center gap-3 text-sm">
+                            {totalCalories > 0 && (
+                                <span className="flex items-center gap-1 text-orange-400">
+                                    <Flame className="w-4 h-4" />
+                                    {totalCalories}kcal
+                                </span>
+                            )}
+                            <span className="flex items-center gap-1 text-grit-text-muted">
+                                <Clock className="w-4 h-4" />
+                                約{estimatedDuration}分
+                            </span>
+                        </div>
+                    </div>
+
+                    {exercises.length > 0 ? (
+                        <div className="space-y-2">
+                            {exercises.map((ex, i) => (
+                                <div
+                                    key={ex.id || i}
+                                    className="flex items-center justify-between bg-grit-bg/50 rounded-lg px-3 py-2"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-grit-text-dim w-5">{i + 1}.</span>
+                                        <span className="text-sm font-medium text-grit-text">{ex.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-grit-text-muted">
+                                        <span className="flex items-center gap-1">
+                                            <Hash className="w-3 h-3" />
+                                            {ex.reps}回
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Layers className="w-3 h-3" />
+                                            {ex.sets}セット
+                                        </span>
+                                        <span className="flex items-center gap-1 text-orange-400">
+                                            <Flame className="w-3 h-3" />
+                                            {ex.calories * ex.sets}kcal
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-grit-text-muted">
+                            メニューが設定されていません
                         </p>
                     )}
                 </div>
