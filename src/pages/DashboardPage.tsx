@@ -106,7 +106,14 @@ export function DashboardPage() {
         setLoading(true);
 
         try {
-            // Load or create profile
+            // Calculate date ranges upfront
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 6);
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            const dayOfWeek = new Date().getDay();
+
+            // Load profile first (needed for setup check)
             const profileData = await getOrCreateProfile(user.$id);
             setProfile(profileData);
 
@@ -114,75 +121,63 @@ export function DashboardPage() {
             const hasTargets = !!(profileData?.target_weight || profileData?.target_calories);
             checkSetupStatus(hasTargets);
 
-            // Load weight logs
-            const logs = await getWeightLogs(user.$id, 2);
+            // Parallel load all independent data
+            const [
+                logs,
+                weeklyData,
+                habits,
+                habitLogs,
+                recordedDays,
+                heatmap,
+                routine,
+                workoutLog,
+                workoutHistory,
+                mealLogs,
+                diaryEntry,
+                stats
+            ] = await Promise.all([
+                getWeightLogs(user.$id, 2),
+                getWeightLogsInRange(user.$id, weekAgo.toISOString().split('T')[0], today),
+                getHabits(user.$id),
+                getHabitLogsForDate(user.$id, today),
+                getRecordedDaysCount(user.$id),
+                getHeatmapData(user.$id, threeMonthsAgo.toISOString().split('T')[0], today),
+                getWorkoutRoutineForDay(user.$id, dayOfWeek),
+                getWorkoutLogForDate(user.$id, today),
+                getWorkoutLogs(user.$id, 5),
+                getMealLogsForDate(user.$id, today),
+                getDiaryEntryForDate(user.$id, today),
+                getAchievementStats(user.$id),
+            ]);
+
+            // Set weight data
             setLatestLog(logs[0] || null);
             setPreviousLog(logs[1] || null);
-
-            // Load weekly logs
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 6);
-            const weeklyData = await getWeightLogsInRange(
-                user.$id,
-                weekAgo.toISOString().split('T')[0],
-                today
-            );
             setWeeklyLogs(weeklyData);
 
-            // Load habits and today's logs
-            let habits = await getHabits(user.$id);
-
-            // Initialize default habits if none exist
+            // Handle habits - initialize if needed
+            let finalHabits = habits;
             if (habits.length === 0) {
                 await initializeDefaultHabits(user.$id);
-                habits = await getHabits(user.$id);
+                finalHabits = await getHabits(user.$id);
             }
 
-            const habitLogs = await getHabitLogsForDate(user.$id, today);
             const habitLogsMap = new Map(habitLogs.map(l => [l.habit_id, l]));
-
-            const dailyHabitStatuses: DailyHabitStatus[] = habits.map(habit => ({
+            const dailyHabitStatuses: DailyHabitStatus[] = finalHabits.map(habit => ({
                 habit,
                 completed: habitLogsMap.get(habit.$id)?.completed || false,
                 logId: habitLogsMap.get(habit.$id)?.$id,
             }));
             setDailyHabits(dailyHabitStatuses);
 
-            // Load level
-            const recordedDays = await getRecordedDaysCount(user.$id);
+            // Set remaining data
             setLevel(Math.floor(recordedDays / 5) + 1);
-
-            // Load heatmap data
-            const threeMonthsAgo = new Date();
-            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            const heatmap = await getHeatmapData(
-                user.$id,
-                threeMonthsAgo.toISOString().split('T')[0],
-                today
-            );
             setHeatmapData(heatmap);
-
-            // Load workout data
-            const dayOfWeek = new Date().getDay();
-            const [routine, workoutLog, workoutHistory] = await Promise.all([
-                getWorkoutRoutineForDay(user.$id, dayOfWeek),
-                getWorkoutLogForDate(user.$id, today),
-                getWorkoutLogs(user.$id, 5),
-            ]);
             setTodayRoutine(routine);
             setTodayWorkoutLog(workoutLog);
             setRecentWorkouts(workoutHistory);
-
-            // Load meal data
-            const mealLogs = await getMealLogsForDate(user.$id, today);
             setTodayMeals(mealLogs);
-
-            // Load diary entry for today
-            const diaryEntry = await getDiaryEntryForDate(user.$id, today);
             setTodayDiary(diaryEntry);
-
-            // Load achievement stats
-            const stats = await getAchievementStats(user.$id);
             setAchievementStats(stats);
         } catch (error) {
             console.error('Error loading data:', error);

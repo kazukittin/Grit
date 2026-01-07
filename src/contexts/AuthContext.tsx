@@ -17,24 +17,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check current session with retry logic for OAuth redirects
+        // Check current session with optimized retry logic
         const checkSession = async (retryCount = 0) => {
             try {
-                console.log(`Checking session... (attempt ${retryCount + 1})`);
                 const currentUser = await account.get();
                 console.log('User found:', currentUser.email);
                 setUser(currentUser);
                 setLoading(false);
             } catch (error) {
-                console.log('No session found, error:', error);
+                console.log('No session found');
 
-                // On OAuth redirect, session might take a moment to be available
-                // Retry a few times with a small delay
-                if (retryCount < 3) {
-                    console.log(`Retrying in 500ms... (${retryCount + 1}/3)`);
-                    setTimeout(() => checkSession(retryCount + 1), 500);
+                // Only retry on OAuth redirect (when URL has success/failure params)
+                const isOAuthRedirect = window.location.search.includes('success') ||
+                    window.location.search.includes('failure') ||
+                    window.location.pathname.includes('/auth');
+
+                if (isOAuthRedirect && retryCount < 2) {
+                    // Shorter delay for OAuth redirects
+                    setTimeout(() => checkSession(retryCount + 1), 300);
                 } else {
-                    // No active session after retries
+                    // No active session - set immediately
                     setUser(null);
                     setLoading(false);
                 }
