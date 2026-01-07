@@ -485,7 +485,7 @@ export function SettingsPage() {
                             type="text"
                             value={newHabitTitle}
                             onChange={(e) => setNewHabitTitle(e.target.value)}
-                            placeholder="新しいタスクを追加..."
+                            placeholder="例: 水を2L飲む、10分運動、体重を測る"
                             className="flex-1 px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
                         />

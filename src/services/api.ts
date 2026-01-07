@@ -301,11 +301,8 @@ export async function deleteHabit(habitId: string): Promise<boolean> {
 }
 
 export async function initializeDefaultHabits(userId: string): Promise<void> {
-    const defaultHabits = [
-        '水を2リットル飲む',
-        '10分間の運動',
-        '体重を測る',
-    ];
+    // No default habits - users start with an empty list
+    const defaultHabits: string[] = [];
 
     for (const title of defaultHabits) {
         await createHabit(userId, title);
