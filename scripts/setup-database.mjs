@@ -47,6 +47,8 @@ const collections = [
             { type: 'integer', key: 'target_protein', required: false },
             { type: 'integer', key: 'target_fat', required: false },
             { type: 'integer', key: 'target_carbs', required: false },
+            { type: 'integer', key: 'age', required: false },
+            { type: 'enum', key: 'gender', elements: ['male', 'female'], required: false },
         ],
         indexes: [
             { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },

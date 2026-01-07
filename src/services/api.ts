@@ -69,6 +69,8 @@ export async function updateProfile(
     profileId: string,
     updates: {
         height?: number | null;
+        age?: number | null;
+        gender?: 'male' | 'female' | null;
         target_weight?: number | null;
         target_calories?: number | null;
         target_protein?: number | null;

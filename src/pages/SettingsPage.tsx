@@ -46,8 +46,8 @@ export function SettingsPage() {
     const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
     const [editingHabitTitle, setEditingHabitTitle] = useState('');
     const [height, setHeight] = useState('');
-    const [age, setAge] = useState('30');
-    const [gender, setGender] = useState<'male' | 'female'>('male');
+    const [age, setAge] = useState('');
+    const [gender, setGender] = useState<'male' | 'female' | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -80,6 +80,12 @@ export function SettingsPage() {
             if (profileData?.height) {
                 setHeight(profileData.height.toString());
             }
+            if (profileData?.age) {
+                setAge(profileData.age.toString());
+            }
+            if (profileData?.gender) {
+                setGender(profileData.gender);
+            }
             setLoading(false);
         };
 
@@ -107,6 +113,7 @@ export function SettingsPage() {
         const fat = parseInt(targetFat) || null;
         const carbs = parseInt(targetCarbs) || null;
         const heightValue = parseFloat(height) || null;
+        const ageValue = parseInt(age) || null;
 
         setSavingNutrition(true);
         await updateProfile(profile.$id, {
@@ -114,16 +121,19 @@ export function SettingsPage() {
             target_protein: protein,
             target_fat: fat,
             target_carbs: carbs,
+            age: ageValue,
+            gender: gender,
             height: heightValue,
         });
         setSavingNutrition(false);
-    }, [user, profile, targetCalories, targetProtein, targetFat, targetCarbs, height]);
+    }, [user, profile, targetCalories, targetProtein, targetFat, targetCarbs, height, age, gender]);
 
     // Calculate nutrition goals based on height, weight, age, and gender using Mifflin-St Jeor equation
     const calculateNutritionGoals = useCallback(() => {
         const heightCm = parseFloat(height);
         const weightKg = parseFloat(targetWeight); // Use target weight as the baseline
         const ageYears = parseInt(age) || 30;
+        const genderValue = gender || 'male';
 
         if (!heightCm || !weightKg) {
             alert('身長と目標体重を先に入力してください');
@@ -132,7 +142,7 @@ export function SettingsPage() {
 
         // Mifflin-St Jeor Equation for BMR
         let bmr: number;
-        if (gender === 'male') {
+        if (genderValue === 'male') {
             bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears + 5;
         } else {
             bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears - 161;

@@ -4,6 +4,8 @@ import type { Models } from 'appwrite';
 export interface Profile extends Models.Document {
     user_id: string;
     height: number | null;         // 身長(cm)
+    age: number | null;            // 年齢
+    gender: 'male' | 'female' | null; // 性別
     target_weight: number | null;
     target_calories: number | null; // 1日の目標カロリー
     target_protein: number | null;  // 目標タンパク質(g)
