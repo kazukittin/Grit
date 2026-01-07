@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat, Star } from 'lucide-react';
+import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat, Star, Plus } from 'lucide-react';
 import type { MealLog, MealType } from '../types';
 import { MEAL_TYPES } from '../types';
 
@@ -284,6 +284,35 @@ export const MealModal = ({
                                     title="お気に入りに追加"
                                 >
                                     <Star className="w-5 h-5" />
+                                </button>
+                            )}
+
+                            {/* Save and Add Another Button (only for new entries) */}
+                            {!editingMeal && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!foodName.trim()) return;
+                                        setIsSaving(true);
+                                        const caloriesNum = parseInt(calories) || 0;
+                                        const proteinNum = protein ? parseFloat(protein) : undefined;
+                                        const fatNum = fat ? parseFloat(fat) : undefined;
+                                        const carbsNum = carbs ? parseFloat(carbs) : undefined;
+                                        await onSave(foodName.trim(), caloriesNum, mealType, proteinNum, fatNum, carbsNum);
+                                        // Reset form for next entry
+                                        setFoodName('');
+                                        setCalories('');
+                                        setProtein('');
+                                        setFat('');
+                                        setCarbs('');
+                                        setShowPFC(false);
+                                        setIsSaving(false);
+                                    }}
+                                    disabled={!foodName.trim() || isSaving}
+                                    className="w-14 h-14 bg-grit-surface-hover text-grit-accent rounded-xl border border-grit-border flex items-center justify-center hover:bg-grit-border transition-colors disabled:opacity-50"
+                                    title="記録して続けて追加"
+                                >
+                                    <Plus className="w-5 h-5" />
                                 </button>
                             )}
 
