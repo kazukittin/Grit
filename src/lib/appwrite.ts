@@ -24,5 +24,7 @@ export const COLLECTIONS = {
     WORKOUT_ROUTINES: import.meta.env.VITE_APPWRITE_COLLECTION_WORKOUT_ROUTINES || 'workout_routines',
     WORKOUT_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_WORKOUT_LOGS || 'workout_logs',
     MEAL_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_MEAL_LOGS || 'meal_logs',
+    FAVORITE_MEALS: 'favorite_meals',
+    MEAL_PRESETS: 'meal_presets',
 };
 

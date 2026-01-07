@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat } from 'lucide-react';
+import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat, Star } from 'lucide-react';
 import type { MealLog, MealType } from '../types';
 import { MEAL_TYPES } from '../types';
 
@@ -8,6 +8,7 @@ interface MealModalProps {
     onClose: () => void;
     onSave: (foodName: string, calories: number, mealType: MealType, protein?: number, fat?: number, carbs?: number) => Promise<void>;
     onUpdate?: (logId: string, foodName: string, calories: number, protein?: number, fat?: number, carbs?: number) => Promise<void>;
+    onAddToFavorites?: (foodName: string, calories: number, protein?: number, fat?: number, carbs?: number) => Promise<void>;
     initialMealType?: MealType;
     editingMeal?: MealLog | null;
 }
@@ -17,6 +18,7 @@ export const MealModal = ({
     onClose,
     onSave,
     onUpdate,
+    onAddToFavorites,
     initialMealType = 'breakfast',
     editingMeal
 }: MealModalProps) => {
@@ -265,14 +267,35 @@ export const MealModal = ({
                             わからない場合は空欄でOKです
                         </p>
 
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={!foodName.trim() || isSaving}
-                            className="w-full py-4 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:hover:scale-100"
-                        >
-                            {isSaving ? '保存中...' : editingMeal ? '更新する' : '記録する'}
-                        </button>
+                        {/* Submit Buttons */}
+                        <div className="flex gap-2">
+                            {/* Add to Favorites Button */}
+                            {onAddToFavorites && !editingMeal && foodName.trim() && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const caloriesNum = parseInt(calories) || 0;
+                                        const proteinNum = protein ? parseFloat(protein) : undefined;
+                                        const fatNum = fat ? parseFloat(fat) : undefined;
+                                        const carbsNum = carbs ? parseFloat(carbs) : undefined;
+                                        await onAddToFavorites(foodName.trim(), caloriesNum, proteinNum, fatNum, carbsNum);
+                                    }}
+                                    className="w-14 h-14 bg-yellow-500/20 text-yellow-500 rounded-xl border border-yellow-500/50 flex items-center justify-center hover:bg-yellow-500/30 transition-colors"
+                                    title="お気に入りに追加"
+                                >
+                                    <Star className="w-5 h-5" />
+                                </button>
+                            )}
+
+                            {/* Submit Button */}
+                            <button
+                                type="submit"
+                                disabled={!foodName.trim() || isSaving}
+                                className="flex-1 py-4 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                            >
+                                {isSaving ? '保存中...' : editingMeal ? '更新する' : '記録する'}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

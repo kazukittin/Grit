@@ -68,6 +68,35 @@ export interface MealLog extends Models.Document {
     carbs: number | null;    // 炭水化物(g)
 }
 
+// お気に入りメニュー（単品）
+export interface FavoriteMeal extends Models.Document {
+    user_id: string;
+    name: string;           // メニュー名
+    calories: number;       // カロリー
+    protein: number | null; // タンパク質(g)
+    fat: number | null;     // 脂質(g)
+    carbs: number | null;   // 炭水化物(g)
+    use_count: number;      // 使用回数（よく使うもの順にソート用）
+}
+
+// セットメニュー（複数メニューの組み合わせ）
+export interface MealPreset extends Models.Document {
+    user_id: string;
+    name: string;           // セット名（例：朝食セット）
+    items: string;          // JSON string of FavoriteMealItem[]
+    total_calories: number; // 合計カロリー
+    use_count: number;      // 使用回数
+}
+
+// セットメニューのアイテム（JSON保存用）
+export interface MealPresetItem {
+    name: string;
+    calories: number;
+    protein: number | null;
+    fat: number | null;
+    carbs: number | null;
+}
+
 // PFC Summary for display
 export interface PFCSummary {
     calories: number;

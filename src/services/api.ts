@@ -1,6 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
-import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType } from '../types';
+import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem } from '../types';
 
 // Type helper for Appwrite documents
 function asProfile(doc: unknown): Profile {
@@ -1117,6 +1117,8 @@ export async function deleteAllUserData(userId: string): Promise<{
             { name: 'workout_routines', id: COLLECTIONS.WORKOUT_ROUTINES },
             { name: 'workout_logs', id: COLLECTIONS.WORKOUT_LOGS },
             { name: 'meal_logs', id: COLLECTIONS.MEAL_LOGS },
+            { name: 'favorite_meals', id: COLLECTIONS.FAVORITE_MEALS },
+            { name: 'meal_presets', id: COLLECTIONS.MEAL_PRESETS },
         ];
 
         for (const collection of collections) {
@@ -1153,3 +1155,259 @@ export async function deleteAllUserData(userId: string): Promise<{
         };
     }
 }
+
+// ============ Favorite Meals API ============
+
+function asFavoriteMeal(doc: unknown): FavoriteMeal {
+    return doc as FavoriteMeal;
+}
+
+function asFavoriteMealArray(docs: unknown[]): FavoriteMeal[] {
+    return docs as FavoriteMeal[];
+}
+
+export async function getFavoriteMeals(userId: string): Promise<FavoriteMeal[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            [
+                Query.equal('user_id', userId),
+                Query.orderDesc('use_count'),
+                Query.limit(100),
+            ]
+        );
+        return asFavoriteMealArray(response.documents);
+    } catch (error) {
+        console.error('Error fetching favorite meals:', error);
+        return [];
+    }
+}
+
+export async function addFavoriteMeal(
+    userId: string,
+    name: string,
+    calories: number,
+    protein?: number | null,
+    fat?: number | null,
+    carbs?: number | null
+): Promise<FavoriteMeal | null> {
+    try {
+        // Check if already exists
+        const existing = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            [
+                Query.equal('user_id', userId),
+                Query.equal('name', name),
+                Query.limit(1),
+            ]
+        );
+
+        if (existing.documents.length > 0) {
+            // Already exists, increment use count
+            const updated = await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTIONS.FAVORITE_MEALS,
+                existing.documents[0].$id,
+                { use_count: (existing.documents[0] as unknown as FavoriteMeal).use_count + 1 }
+            );
+            return asFavoriteMeal(updated);
+        }
+
+        const created = await databases.createDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            ID.unique(),
+            {
+                user_id: userId,
+                name,
+                calories: calories || 0,
+                protein: protein ?? null,
+                fat: fat ?? null,
+                carbs: carbs ?? null,
+                use_count: 1,
+            }
+        );
+        return asFavoriteMeal(created);
+    } catch (error) {
+        console.error('Error adding favorite meal:', error);
+        return null;
+    }
+}
+
+export async function updateFavoriteMeal(
+    mealId: string,
+    updates: {
+        name?: string;
+        calories?: number;
+        protein?: number | null;
+        fat?: number | null;
+        carbs?: number | null;
+    }
+): Promise<FavoriteMeal | null> {
+    try {
+        const updated = await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            mealId,
+            updates
+        );
+        return asFavoriteMeal(updated);
+    } catch (error) {
+        console.error('Error updating favorite meal:', error);
+        return null;
+    }
+}
+
+export async function deleteFavoriteMeal(mealId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            mealId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting favorite meal:', error);
+        return false;
+    }
+}
+
+export async function incrementFavoriteMealUseCount(mealId: string): Promise<boolean> {
+    try {
+        const doc = await databases.getDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            mealId
+        );
+        await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITE_MEALS,
+            mealId,
+            { use_count: ((doc as unknown as FavoriteMeal).use_count || 0) + 1 }
+        );
+        return true;
+    } catch (error) {
+        console.error('Error incrementing favorite meal use count:', error);
+        return false;
+    }
+}
+
+// ============ Meal Presets API ============
+
+function asMealPreset(doc: unknown): MealPreset {
+    return doc as MealPreset;
+}
+
+function asMealPresetArray(docs: unknown[]): MealPreset[] {
+    return docs as MealPreset[];
+}
+
+export async function getMealPresets(userId: string): Promise<MealPreset[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            [
+                Query.equal('user_id', userId),
+                Query.orderDesc('use_count'),
+                Query.limit(50),
+            ]
+        );
+        return asMealPresetArray(response.documents);
+    } catch (error) {
+        console.error('Error fetching meal presets:', error);
+        return [];
+    }
+}
+
+export async function addMealPreset(
+    userId: string,
+    name: string,
+    items: MealPresetItem[]
+): Promise<MealPreset | null> {
+    try {
+        const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
+
+        const created = await databases.createDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            ID.unique(),
+            {
+                user_id: userId,
+                name,
+                items: JSON.stringify(items),
+                total_calories: totalCalories,
+                use_count: 0,
+            }
+        );
+        return asMealPreset(created);
+    } catch (error) {
+        console.error('Error adding meal preset:', error);
+        return null;
+    }
+}
+
+export async function updateMealPreset(
+    presetId: string,
+    updates: {
+        name?: string;
+        items?: MealPresetItem[];
+    }
+): Promise<MealPreset | null> {
+    try {
+        const updateData: Record<string, unknown> = {};
+        if (updates.name) updateData.name = updates.name;
+        if (updates.items) {
+            updateData.items = JSON.stringify(updates.items);
+            updateData.total_calories = updates.items.reduce((sum, item) => sum + (item.calories || 0), 0);
+        }
+
+        const updated = await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            presetId,
+            updateData
+        );
+        return asMealPreset(updated);
+    } catch (error) {
+        console.error('Error updating meal preset:', error);
+        return null;
+    }
+}
+
+export async function deleteMealPreset(presetId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            presetId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting meal preset:', error);
+        return false;
+    }
+}
+
+export async function incrementMealPresetUseCount(presetId: string): Promise<boolean> {
+    try {
+        const doc = await databases.getDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            presetId
+        );
+        await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.MEAL_PRESETS,
+            presetId,
+            { use_count: ((doc as unknown as MealPreset).use_count || 0) + 1 }
+        );
+        return true;
+    } catch (error) {
+        console.error('Error incrementing meal preset use count:', error);
+        return false;
+    }
+}
+

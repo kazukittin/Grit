@@ -162,6 +162,36 @@ const collections = [
             { key: 'user_date_idx', type: 'key', attributes: ['user_id', 'date'] },
         ],
     },
+    {
+        id: 'favorite_meals',
+        name: 'Favorite Meals',
+        attributes: [
+            { type: 'string', key: 'user_id', size: 36, required: true },
+            { type: 'string', key: 'name', size: 255, required: true },
+            { type: 'integer', key: 'calories', required: false, default: 0 },
+            { type: 'float', key: 'protein', required: false },
+            { type: 'float', key: 'fat', required: false },
+            { type: 'float', key: 'carbs', required: false },
+            { type: 'integer', key: 'use_count', required: false, default: 0 },
+        ],
+        indexes: [
+            { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
+        ],
+    },
+    {
+        id: 'meal_presets',
+        name: 'Meal Presets',
+        attributes: [
+            { type: 'string', key: 'user_id', size: 36, required: true },
+            { type: 'string', key: 'name', size: 255, required: true },
+            { type: 'string', key: 'items', size: 5000, required: true }, // JSON string
+            { type: 'integer', key: 'total_calories', required: false, default: 0 },
+            { type: 'integer', key: 'use_count', required: false, default: 0 },
+        ],
+        indexes: [
+            { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
+        ],
+    },
 ];
 
 // ============ Helper Functions ============
