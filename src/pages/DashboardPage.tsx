@@ -11,10 +11,9 @@ import { FloatingButton } from '../components/FloatingButton';
 import { TodayWorkout } from '../components/TodayWorkout';
 import { WorkoutModal } from '../components/WorkoutModal';
 import { RecentWorkouts } from '../components/RecentWorkouts';
-import { TodayMeals } from '../components/TodayMeals';
+import { MealDashboard } from '../components/MealDashboard';
 import { MealModal } from '../components/MealModal';
 import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
-import { CalorieRingChart } from '../components/CalorieRingChart';
 import { DiaryModal, MoodCard } from '../components/DiaryModal';
 import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
 import { AchievementManager } from '../components/Achievements';
@@ -24,7 +23,6 @@ import {
     SkeletonChart,
     SkeletonHabits,
     SkeletonHeatmap,
-    SkeletonCalorieRing,
     SkeletonMeals,
 } from '../components/Skeleton';
 import { Plus, BarChart3, Trophy } from 'lucide-react';
@@ -370,7 +368,6 @@ export function DashboardPage() {
                             <SkeletonHeatmap />
                         </div>
                         <div className="md:col-span-2 space-y-6">
-                            <SkeletonCalorieRing />
                             <SkeletonHabits />
                             <SkeletonMeals />
                         </div>
@@ -421,11 +418,6 @@ export function DashboardPage() {
 
                     {/* 右側 (PCで2カラム = 40%) */}
                     <div className="md:col-span-2 space-y-6">
-                        {/* Calorie & PFC Ring Chart */}
-                        <CalorieRingChart
-                            current={pfcSummary}
-                            target={targetPFC}
-                        />
 
                         <TodayWorkout
                             routine={todayRoutine}
@@ -439,13 +431,28 @@ export function DashboardPage() {
                             onToggle={handleToggleHabit}
                         />
 
-                        <TodayMeals
+                        <MealDashboard
                             meals={todayMeals}
+                            favoriteMeals={favoriteMeals}
+                            currentPFC={pfcSummary}
+                            targetPFC={targetPFC}
                             onAddMeal={handleAddMeal}
                             onEditMeal={handleEditMeal}
                             onDeleteMeal={handleDeleteMeal}
+                            onQuickAdd={async (meal, mealType) => {
+                                if (!user) return;
+                                await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs, today);
+                                await incrementFavoriteMealUseCount(meal.$id);
+                                const updatedMeals = await getMealLogsForDate(user.$id, today);
+                                setTodayMeals(updatedMeals);
+                                await incrementMealCount(user.$id);
+                            }}
                             onOpenFavorites={() => setIsFavoriteSelectorOpen(true)}
-                            hasFavorites={favoriteMeals.length > 0 || mealPresets.length > 0}
+                            onOpenManualEntry={(mealType) => {
+                                setSelectedMealType(mealType);
+                                setEditingMeal(null);
+                                setIsMealModalOpen(true);
+                            }}
                         />
 
                         <MoodCard
