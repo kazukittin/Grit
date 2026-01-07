@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Utensils, Plus, Sunrise, Sun, Sunset, Cookie, Flame, Edit3, Trash2 } from 'lucide-react';
+import { Utensils, Plus, Sunrise, Sun, Sunset, Cookie, Flame, Edit3, Trash2, Star } from 'lucide-react';
 import type { MealLog, MealType } from '../types';
 import { MEAL_TYPES } from '../types';
 
@@ -8,6 +8,8 @@ interface TodayMealsProps {
     onAddMeal: (mealType: MealType) => void;
     onEditMeal: (meal: MealLog) => void;
     onDeleteMeal: (mealId: string) => Promise<void>;
+    onOpenFavorites?: () => void;
+    hasFavorites?: boolean;
 }
 
 const MealIcon = ({ type }: { type: 'sunrise' | 'sun' | 'sunset' | 'cookie' }) => {
@@ -23,7 +25,7 @@ const MealIcon = ({ type }: { type: 'sunrise' | 'sun' | 'sunset' | 'cookie' }) =
     }
 };
 
-export const TodayMeals = ({ meals, onAddMeal, onEditMeal, onDeleteMeal }: TodayMealsProps) => {
+export const TodayMeals = ({ meals, onAddMeal, onEditMeal, onDeleteMeal, onOpenFavorites, hasFavorites }: TodayMealsProps) => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Calculate total calories
@@ -49,11 +51,22 @@ export const TodayMeals = ({ meals, onAddMeal, onEditMeal, onDeleteMeal }: Today
                     <Utensils className="w-5 h-5 text-grit-accent" />
                     <h2 className="text-lg font-semibold text-grit-text">今日の食事</h2>
                 </div>
-                <div className="flex items-center gap-2 bg-grit-accent/10 px-3 py-1.5 rounded-full">
-                    <Flame className="w-4 h-4 text-grit-accent" />
-                    <span className="text-sm font-bold text-grit-accent">
-                        {totalCalories.toLocaleString()} kcal
-                    </span>
+                <div className="flex items-center gap-3">
+                    {onOpenFavorites && (
+                        <button
+                            onClick={onOpenFavorites}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${hasFavorites ? 'bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30' : 'bg-grit-bg text-grit-text-muted hover:bg-grit-surface-hover'}`}
+                        >
+                            <Star className="w-4 h-4" fill={hasFavorites ? 'currentColor' : 'none'} />
+                            お気に入り
+                        </button>
+                    )}
+                    <div className="flex items-center gap-2 bg-grit-accent/10 px-3 py-1.5 rounded-full">
+                        <Flame className="w-4 h-4 text-grit-accent" />
+                        <span className="text-sm font-bold text-grit-accent">
+                            {totalCalories.toLocaleString()} kcal
+                        </span>
+                    </div>
                 </div>
             </div>
 

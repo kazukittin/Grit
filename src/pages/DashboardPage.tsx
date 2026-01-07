@@ -13,6 +13,7 @@ import { WorkoutModal } from '../components/WorkoutModal';
 import { RecentWorkouts } from '../components/RecentWorkouts';
 import { TodayMeals } from '../components/TodayMeals';
 import { MealModal } from '../components/MealModal';
+import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
 import { CalorieRingChart } from '../components/CalorieRingChart';
 import { DiaryModal, MoodCard } from '../components/DiaryModal';
 import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
@@ -53,8 +54,15 @@ import {
     incrementHabitCompletions,
     incrementMealCount,
     updateProfile,
+    getFavoriteMeals,
+    getMealPresets,
+    addFavoriteMeal,
+    deleteFavoriteMeal,
+    deleteMealPreset,
+    incrementFavoriteMealUseCount,
+    incrementMealPresetUseCount,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, DiaryEntry, AchievementStats } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, DiaryEntry, AchievementStats, FavoriteMeal, MealPreset } from '../types';
 import type { SetupData } from '../components/InitialSetupWizard';
 
 export function DashboardPage() {
@@ -88,6 +96,11 @@ export function DashboardPage() {
     const [isMealModalOpen, setIsMealModalOpen] = useState(false);
     const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
     const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
+
+    // Favorite meals state
+    const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
+    const [mealPresets, setMealPresets] = useState<MealPreset[]>([]);
+    const [isFavoriteSelectorOpen, setIsFavoriteSelectorOpen] = useState(false);
 
     // Diary state
     const [todayDiary, setTodayDiary] = useState<DiaryEntry | null>(null);
@@ -134,7 +147,9 @@ export function DashboardPage() {
                 workoutHistory,
                 mealLogs,
                 diaryEntry,
-                stats
+                stats,
+                favorites,
+                presets,
             ] = await Promise.all([
                 getWeightLogs(user.$id, 2),
                 getWeightLogsInRange(user.$id, weekAgo.toISOString().split('T')[0], today),
@@ -148,6 +163,8 @@ export function DashboardPage() {
                 getMealLogsForDate(user.$id, today),
                 getDiaryEntryForDate(user.$id, today),
                 getAchievementStats(user.$id),
+                getFavoriteMeals(user.$id),
+                getMealPresets(user.$id),
             ]);
 
             // Set weight data
@@ -179,6 +196,8 @@ export function DashboardPage() {
             setTodayMeals(mealLogs);
             setTodayDiary(diaryEntry);
             setAchievementStats(stats);
+            setFavoriteMeals(favorites);
+            setMealPresets(presets);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -425,6 +444,8 @@ export function DashboardPage() {
                             onAddMeal={handleAddMeal}
                             onEditMeal={handleEditMeal}
                             onDeleteMeal={handleDeleteMeal}
+                            onOpenFavorites={() => setIsFavoriteSelectorOpen(true)}
+                            hasFavorites={favoriteMeals.length > 0 || mealPresets.length > 0}
                         />
 
                         <MoodCard
@@ -478,8 +499,63 @@ export function DashboardPage() {
                 }}
                 onSave={handleSaveMeal}
                 onUpdate={handleUpdateMeal}
+                onAddToFavorites={async (foodName, calories, protein, fat, carbs) => {
+                    if (!user) return;
+                    const meal = await addFavoriteMeal(user.$id, foodName, calories, protein, fat, carbs);
+                    if (meal) {
+                        setFavoriteMeals(prev => {
+                            // Check if already exists
+                            const exists = prev.find(m => m.$id === meal.$id);
+                            if (exists) return prev.map(m => m.$id === meal.$id ? meal : m);
+                            return [meal, ...prev];
+                        });
+                    }
+                }}
                 initialMealType={selectedMealType}
                 editingMeal={editingMeal}
+            />
+
+            <FavoriteMealSelector
+                isOpen={isFavoriteSelectorOpen}
+                onClose={() => setIsFavoriteSelectorOpen(false)}
+                favoriteMeals={favoriteMeals}
+                mealPresets={mealPresets}
+                onSelectFavorite={async (meal, mealType) => {
+                    if (!user) return;
+                    await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs);
+                    await incrementFavoriteMealUseCount(meal.$id);
+                    const updatedMeals = await getMealLogsForDate(user.$id, today);
+                    setTodayMeals(updatedMeals);
+                    await incrementMealCount(user.$id);
+                }}
+                onSelectPreset={async (preset, mealType) => {
+                    if (!user) return;
+                    try {
+                        const items = JSON.parse(preset.items) as { name: string; calories: number; protein?: number | null; fat?: number | null; carbs?: number | null }[];
+                        for (const item of items) {
+                            await addMealLog(user.$id, mealType, item.name, item.calories, item.protein, item.fat, item.carbs);
+                        }
+                        await incrementMealPresetUseCount(preset.$id);
+                        const updatedMeals = await getMealLogsForDate(user.$id, today);
+                        setTodayMeals(updatedMeals);
+                        await incrementMealCount(user.$id);
+                    } catch (e) {
+                        console.error('Error parsing preset items:', e);
+                    }
+                }}
+                onDeleteFavorite={async (mealId) => {
+                    if (confirm('このお気に入りを削除しますか？')) {
+                        await deleteFavoriteMeal(mealId);
+                        setFavoriteMeals(prev => prev.filter(m => m.$id !== mealId));
+                    }
+                }}
+                onDeletePreset={async (presetId) => {
+                    if (confirm('このセットメニューを削除しますか？')) {
+                        await deleteMealPreset(presetId);
+                        setMealPresets(prev => prev.filter(p => p.$id !== presetId));
+                    }
+                }}
+                initialMealType={selectedMealType}
             />
 
             <DiaryModal
