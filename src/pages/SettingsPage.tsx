@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle, Calculator, Ruler } from 'lucide-react';
+import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle, Calculator, Ruler, Star, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
@@ -18,8 +18,14 @@ import {
     deleteWorkoutRoutine,
     exportAllData,
     importData,
+    getFavoriteMeals,
+    getMealPresets,
+    deleteFavoriteMeal,
+    addMealPreset,
+    deleteMealPreset,
+    updateMealPreset,
 } from '../services/api';
-import type { Profile, Habit, WorkoutRoutine } from '../types';
+import type { Profile, Habit, WorkoutRoutine, FavoriteMeal, MealPreset, MealPresetItem } from '../types';
 
 export function SettingsPage() {
     const navigate = useNavigate();
@@ -49,19 +55,31 @@ export function SettingsPage() {
     const [age, setAge] = useState('');
     const [gender, setGender] = useState<'male' | 'female' | null>(null);
 
+    // Favorite meals and presets state
+    const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
+    const [mealPresets, setMealPresets] = useState<MealPreset[]>([]);
+    const [showPresetModal, setShowPresetModal] = useState(false);
+    const [newPresetName, setNewPresetName] = useState('');
+    const [selectedFavoritesForPreset, setSelectedFavoritesForPreset] = useState<string[]>([]);
+    const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
+
     useEffect(() => {
         if (!user) return;
 
         const loadData = async () => {
             setLoading(true);
-            const [profileData, habitsData, routinesData] = await Promise.all([
+            const [profileData, habitsData, routinesData, favoritesData, presetsData] = await Promise.all([
                 getOrCreateProfile(user.$id),
                 getAllHabits(user.$id),
                 getWorkoutRoutines(user.$id),
+                getFavoriteMeals(user.$id),
+                getMealPresets(user.$id),
             ]);
             setProfile(profileData);
             setHabits(habitsData);
             setWorkoutRoutines(routinesData);
+            setFavoriteMeals(favoritesData);
+            setMealPresets(presetsData);
             if (profileData?.target_weight) {
                 setTargetWeight(profileData.target_weight.toString());
             }
@@ -560,6 +578,266 @@ export function SettingsPage() {
                         ))}
                     </div>
                 </section>
+
+                {/* Favorite Meals & Presets Management */}
+                <section className="bg-grit-surface rounded-2xl p-6 border border-grit-border">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Star className="w-5 h-5 text-yellow-500" />
+                        <h2 className="text-lg font-semibold text-grit-text">よく食べるメニュー</h2>
+                    </div>
+
+                    {/* Favorite Meals List */}
+                    <div className="mb-6">
+                        <h3 className="text-sm font-medium text-grit-text-muted mb-3">
+                            お気に入りメニュー ({favoriteMeals.length})
+                        </h3>
+                        {favoriteMeals.length === 0 ? (
+                            <p className="text-sm text-grit-text-dim text-center py-4">
+                                食事記録時に⭐ボタンで追加できます
+                            </p>
+                        ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {favoriteMeals.map(meal => (
+                                    <div
+                                        key={meal.$id}
+                                        className="flex items-center justify-between p-3 bg-grit-bg rounded-xl"
+                                    >
+                                        <div>
+                                            <div className="font-medium text-grit-text">{meal.name}</div>
+                                            <div className="text-xs text-grit-text-muted">
+                                                {meal.calories} kcal
+                                                {meal.protein && ` • P: ${meal.protein}g`}
+                                                {meal.fat && ` • F: ${meal.fat}g`}
+                                                {meal.carbs && ` • C: ${meal.carbs}g`}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm('このお気に入りを削除しますか？')) {
+                                                    await deleteFavoriteMeal(meal.$id);
+                                                    setFavoriteMeals(prev => prev.filter(m => m.$id !== meal.$id));
+                                                }
+                                            }}
+                                            className="p-2 text-grit-negative/50 hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Meal Presets List */}
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-medium text-grit-text-muted">
+                                <Package className="w-4 h-4 inline mr-1" />
+                                セットメニュー ({mealPresets.length})
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setNewPresetName('');
+                                    setSelectedFavoritesForPreset([]);
+                                    setEditingPresetId(null);
+                                    setShowPresetModal(true);
+                                }}
+                                disabled={favoriteMeals.length === 0}
+                                className="text-xs text-grit-accent hover:underline disabled:opacity-50 disabled:hover:no-underline"
+                            >
+                                + 新規作成
+                            </button>
+                        </div>
+                        {mealPresets.length === 0 ? (
+                            <p className="text-sm text-grit-text-dim text-center py-4">
+                                お気に入りを組み合わせてセットを作成できます
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {mealPresets.map(preset => {
+                                    let items: MealPresetItem[] = [];
+                                    try {
+                                        items = JSON.parse(preset.items);
+                                    } catch { /* empty */ }
+
+                                    return (
+                                        <div
+                                            key={preset.$id}
+                                            className="p-3 bg-grit-bg rounded-xl"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="font-medium text-grit-text">{preset.name}</div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingPresetId(preset.$id);
+                                                            setNewPresetName(preset.name);
+                                                            // Find matching favorite IDs
+                                                            const selectedIds = items
+                                                                .map(item => favoriteMeals.find(f => f.name === item.name)?.$id)
+                                                                .filter((id): id is string => !!id);
+                                                            setSelectedFavoritesForPreset(selectedIds);
+                                                            setShowPresetModal(true);
+                                                        }}
+                                                        className="p-1.5 text-grit-text-muted hover:text-grit-accent hover:bg-grit-accent/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit3 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm('このセットメニューを削除しますか？')) {
+                                                                await deleteMealPreset(preset.$id);
+                                                                setMealPresets(prev => prev.filter(p => p.$id !== preset.$id));
+                                                            }
+                                                        }}
+                                                        className="p-1.5 text-grit-negative/50 hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-grit-text-muted">
+                                                {items.length}品 • 計 {preset.total_calories} kcal
+                                            </div>
+                                            <div className="mt-1 text-xs text-grit-text-dim">
+                                                {items.map(i => i.name).join('、')}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* Preset Creation Modal */}
+                {showPresetModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPresetModal(false)} />
+                        <div className="relative w-full max-w-md bg-grit-surface rounded-2xl border border-grit-border p-6 max-h-[80vh] overflow-y-auto">
+                            <h3 className="text-lg font-semibold text-grit-text mb-4">
+                                {editingPresetId ? 'セットメニューを編集' : '新しいセットメニュー'}
+                            </h3>
+
+                            {/* Preset Name */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                    セット名
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newPresetName}
+                                    onChange={(e) => setNewPresetName(e.target.value)}
+                                    placeholder="例: 朝食セット"
+                                    className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text placeholder:text-grit-text-dim focus:outline-none focus:border-grit-accent transition-colors"
+                                />
+                            </div>
+
+                            {/* Select Favorites */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-grit-text-muted mb-2">
+                                    含めるメニュー（複数選択可）
+                                </label>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {favoriteMeals.map(meal => (
+                                        <label
+                                            key={meal.$id}
+                                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${selectedFavoritesForPreset.includes(meal.$id)
+                                                ? 'bg-grit-accent/20 border border-grit-accent'
+                                                : 'bg-grit-bg border border-transparent hover:border-grit-border'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFavoritesForPreset.includes(meal.$id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedFavoritesForPreset(prev => [...prev, meal.$id]);
+                                                    } else {
+                                                        setSelectedFavoritesForPreset(prev => prev.filter(id => id !== meal.$id));
+                                                    }
+                                                }}
+                                                className="hidden"
+                                            />
+                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedFavoritesForPreset.includes(meal.$id)
+                                                ? 'bg-grit-accent border-grit-accent text-white'
+                                                : 'border-grit-text-dim'
+                                                }`}>
+                                                {selectedFavoritesForPreset.includes(meal.$id) && <Check className="w-3 h-3" />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-sm text-grit-text">{meal.name}</div>
+                                                <div className="text-xs text-grit-text-muted">{meal.calories} kcal</div>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Preview */}
+                            {selectedFavoritesForPreset.length > 0 && (
+                                <div className="mb-4 p-3 bg-grit-bg rounded-xl">
+                                    <div className="text-xs text-grit-text-muted mb-1">合計</div>
+                                    <div className="text-sm font-medium text-grit-text">
+                                        {selectedFavoritesForPreset.length}品 •
+                                        {favoriteMeals
+                                            .filter(m => selectedFavoritesForPreset.includes(m.$id))
+                                            .reduce((sum, m) => sum + m.calories, 0)} kcal
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowPresetModal(false)}
+                                    className="flex-1 py-3 bg-grit-surface-hover text-grit-text-muted font-medium rounded-xl hover:bg-grit-border transition-colors"
+                                >
+                                    キャンセル
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!user || !newPresetName.trim() || selectedFavoritesForPreset.length === 0) return;
+
+                                        const items: MealPresetItem[] = favoriteMeals
+                                            .filter(m => selectedFavoritesForPreset.includes(m.$id))
+                                            .map(m => ({
+                                                name: m.name,
+                                                calories: m.calories,
+                                                protein: m.protein,
+                                                fat: m.fat,
+                                                carbs: m.carbs,
+                                            }));
+
+                                        if (editingPresetId) {
+                                            const updated = await updateMealPreset(editingPresetId, {
+                                                name: newPresetName.trim(),
+                                                items,
+                                            });
+                                            if (updated) {
+                                                setMealPresets(prev => prev.map(p => p.$id === editingPresetId ? updated : p));
+                                            }
+                                        } else {
+                                            const created = await addMealPreset(user.$id, newPresetName.trim(), items);
+                                            if (created) {
+                                                setMealPresets(prev => [created, ...prev]);
+                                            }
+                                        }
+
+                                        setShowPresetModal(false);
+                                        setNewPresetName('');
+                                        setSelectedFavoritesForPreset([]);
+                                        setEditingPresetId(null);
+                                    }}
+                                    disabled={!newPresetName.trim() || selectedFavoritesForPreset.length === 0}
+                                    className="flex-1 py-3 bg-grit-accent text-white font-medium rounded-xl hover:bg-grit-accent-dark transition-colors disabled:opacity-50"
+                                >
+                                    {editingPresetId ? '更新' : '作成'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Workout Schedule Settings */}
                 <WorkoutScheduleSettings
