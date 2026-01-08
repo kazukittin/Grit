@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, ChevronDown } from 'lucide-react';
+import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, ChevronDown, Timer, RotateCcw } from 'lucide-react';
 import type { WorkoutRoutine, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
 
@@ -36,7 +36,11 @@ function parseExercises(description: string): ExerciseItem[] {
     try {
         const parsed = JSON.parse(description);
         if (Array.isArray(parsed)) {
-            return parsed;
+            // Backward compatibility: add default unit if missing
+            return parsed.map(ex => ({
+                ...ex,
+                unit: ex.unit || 'reps'
+            }));
         }
     } catch {
         // 古い形式のデータの場合は空配列を返す
@@ -91,6 +95,7 @@ export const WorkoutScheduleSettings = ({
             id: generateId(),
             name: name.trim(),
             reps: 10,
+            unit: 'reps',
             sets: 3,
             calories: 10,
         };
@@ -290,11 +295,30 @@ export const WorkoutScheduleSettings = ({
 
                                                                 {/* Exercise Details - Horizontal Grid */}
                                                                 <div className="grid grid-cols-3 gap-3">
-                                                                    {/* Reps */}
+                                                                    {/* Reps/Seconds with Unit Toggle */}
                                                                     <div className="bg-grit-surface-hover rounded-lg p-3">
-                                                                        <label className="block text-xs text-grit-text-dim mb-1">
-                                                                            回数
-                                                                        </label>
+                                                                        <div className="flex items-center justify-between mb-1">
+                                                                            <label className="text-xs text-grit-text-dim">
+                                                                                {exercise.unit === 'seconds' ? '秒数' : '回数'}
+                                                                            </label>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleUpdateExercise(
+                                                                                    day,
+                                                                                    exercise.id,
+                                                                                    'unit',
+                                                                                    exercise.unit === 'reps' ? 'seconds' : 'reps'
+                                                                                )}
+                                                                                className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-grit-border hover:bg-grit-accent hover:text-white text-grit-text-muted transition-colors"
+                                                                                title="回数/秒を切り替え"
+                                                                            >
+                                                                                {exercise.unit === 'seconds' ? (
+                                                                                    <RotateCcw className="w-3 h-3" />
+                                                                                ) : (
+                                                                                    <Timer className="w-3 h-3" />
+                                                                                )}
+                                                                            </button>
+                                                                        </div>
                                                                         <div className="flex items-center gap-1">
                                                                             <input
                                                                                 type="number"
@@ -303,7 +327,9 @@ export const WorkoutScheduleSettings = ({
                                                                                 className="w-full bg-transparent border-none text-grit-text text-lg font-semibold focus:outline-none text-center"
                                                                                 min="1"
                                                                             />
-                                                                            <span className="text-xs text-grit-text-dim">回</span>
+                                                                            <span className="text-xs text-grit-text-dim">
+                                                                                {exercise.unit === 'seconds' ? '秒' : '回'}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
 

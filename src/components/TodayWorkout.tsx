@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers } from 'lucide-react';
+import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { WorkoutRoutine, WorkoutLog, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
@@ -15,7 +15,11 @@ function parseExercises(description: string): ExerciseItem[] {
     try {
         const parsed = JSON.parse(description);
         if (Array.isArray(parsed)) {
-            return parsed;
+            // Backward compatibility: add default unit if missing
+            return parsed.map(ex => ({
+                ...ex,
+                unit: ex.unit || 'reps'
+            }));
         }
     } catch {
         // 古い形式のデータの場合は空配列を返す
@@ -97,7 +101,7 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                                     <span className="text-grit-positive">✓</span>
                                     <span>{ex.name}</span>
                                     <span className="text-xs text-grit-text-dim">
-                                        {ex.reps}回 × {ex.sets}セット
+                                        {ex.reps}{ex.unit === 'seconds' ? '秒' : '回'} × {ex.sets}セット
                                     </span>
                                 </div>
                             ))}
@@ -152,8 +156,12 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-grit-text-muted">
                                         <span className="flex items-center gap-1">
-                                            <Hash className="w-3 h-3" />
-                                            {ex.reps}回
+                                            {ex.unit === 'seconds' ? (
+                                                <Timer className="w-3 h-3" />
+                                            ) : (
+                                                <Hash className="w-3 h-3" />
+                                            )}
+                                            {ex.reps}{ex.unit === 'seconds' ? '秒' : '回'}
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <Layers className="w-3 h-3" />

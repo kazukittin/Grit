@@ -44,7 +44,8 @@ export interface WorkoutRoutine extends Models.Document {
 export interface ExerciseItem {
     id: string;
     name: string;
-    reps: number; // 回数 or 秒数
+    reps: number; // 回数 or 秒数 (depending on unit)
+    unit: 'reps' | 'seconds'; // 回数 or 秒数
     sets: number; // セット数
     calories: number; // 消費カロリー
 }
