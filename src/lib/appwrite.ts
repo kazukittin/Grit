@@ -26,7 +26,7 @@ export const COLLECTIONS = {
     MEAL_LOGS: import.meta.env.VITE_APPWRITE_COLLECTION_MEAL_LOGS || 'meal_logs',
     FAVORITE_MEALS: 'favorite_meals',
     MEAL_PRESETS: 'meal_presets',
-    DIARY_ENTRIES: import.meta.env.VITE_APPWRITE_COLLECTION_DIARY_ENTRIES || 'diary_entries',
+
     USER_STATS: import.meta.env.VITE_APPWRITE_COLLECTION_USER_STATS || 'user_stats',
 };
 

@@ -14,7 +14,7 @@ import { RecentWorkouts } from '../components/RecentWorkouts';
 import { MealDashboard } from '../components/MealDashboard';
 import { MealModal } from '../components/MealModal';
 import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
-import { DiaryModal, MoodCard } from '../components/DiaryModal';
+
 import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
 import { AchievementManager } from '../components/Achievements';
 import { getUnlockedAchievements } from '../lib/achievements';
@@ -47,8 +47,7 @@ import {
     addMealLog,
     updateMealLog,
     deleteMealLog,
-    getDiaryEntryForDate,
-    saveDiaryEntry,
+
     getAchievementStats,
     incrementHabitCompletions,
     incrementMealCount,
@@ -61,7 +60,7 @@ import {
     incrementFavoriteMealUseCount,
     incrementMealPresetUseCount,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, DiaryEntry, AchievementStats, FavoriteMeal, MealPreset } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, AchievementStats, FavoriteMeal, MealPreset } from '../types';
 import type { SetupData } from '../components/InitialSetupWizard';
 
 export function DashboardPage() {
@@ -101,9 +100,7 @@ export function DashboardPage() {
     const [mealPresets, setMealPresets] = useState<MealPreset[]>([]);
     const [isFavoriteSelectorOpen, setIsFavoriteSelectorOpen] = useState(false);
 
-    // Diary state
-    const [todayDiary, setTodayDiary] = useState<DiaryEntry | null>(null);
-    const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
+
 
     // Achievement state
     const [achievementStats, setAchievementStats] = useState<AchievementStats | null>(null);
@@ -150,7 +147,6 @@ export function DashboardPage() {
                 workoutLog,
                 workoutHistory,
                 mealLogs,
-                diaryEntry,
                 stats,
                 favorites,
                 presets,
@@ -165,7 +161,6 @@ export function DashboardPage() {
                 getWorkoutLogForDate(user.$id, today),
                 getWorkoutLogs(user.$id, 5),
                 getMealLogsForDate(user.$id, today),
-                getDiaryEntryForDate(user.$id, today),
                 getAchievementStats(user.$id),
                 getFavoriteMeals(user.$id),
                 getMealPresets(user.$id),
@@ -198,7 +193,6 @@ export function DashboardPage() {
             setTodayWorkoutLog(workoutLog);
             setRecentWorkouts(workoutHistory);
             setTodayMeals(mealLogs);
-            setTodayDiary(diaryEntry);
             setAchievementStats(stats);
             setFavoriteMeals(favorites);
             setMealPresets(presets);
@@ -474,10 +468,7 @@ export function DashboardPage() {
                             }}
                         />
 
-                        <MoodCard
-                            entry={todayDiary}
-                            onEdit={() => setIsDiaryModalOpen(true)}
-                        />
+
 
                         <RecentWorkouts logs={recentWorkouts} />
 
@@ -584,18 +575,7 @@ export function DashboardPage() {
                 initialMealType={selectedMealType}
             />
 
-            <DiaryModal
-                isOpen={isDiaryModalOpen}
-                onClose={() => setIsDiaryModalOpen(false)}
-                onSave={async (mood, note, energyLevel) => {
-                    if (!user) return;
-                    const entry = await saveDiaryEntry(user.$id, today, mood, note, energyLevel);
-                    if (entry) {
-                        setTodayDiary(entry);
-                    }
-                }}
-                existingEntry={todayDiary}
-            />
+
 
             {/* Onboarding Tour */}
             <OnboardingTour

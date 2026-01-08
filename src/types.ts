@@ -176,16 +176,7 @@ export interface UserAchievement {
     unlockedAt: string;
 }
 
-// ============ Diary / Notes ============
 
-// DiaryEntry is now stored in Appwrite database
-export interface DiaryEntry extends Models.Document {
-    user_id: string;
-    date: string;
-    mood: 'great' | 'good' | 'neutral' | 'bad' | 'terrible';
-    note: string;
-    energy_level: number; // 1-5
-}
 
 // ============ User Stats (stored in Appwrite) ============
 
@@ -237,6 +228,6 @@ export interface ExportData {
     habitLogs: HabitLog[];
     workoutLogs: WorkoutLog[];
     mealLogs: MealLog[];
-    diaryEntries: DiaryEntry[];
+
 }
 

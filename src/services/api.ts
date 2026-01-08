@@ -1,6 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
-import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem, DiaryEntry, UserStatsDoc } from '../types';
+import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem, UserStatsDoc } from '../types';
 
 // Type helper for Appwrite documents
 function asProfile(doc: unknown): Profile {
@@ -819,113 +819,11 @@ export async function deleteMealLog(logId: string): Promise<boolean> {
     }
 }
 
-// ============ Diary / Notes API ============
-
 import type { AchievementStats, ExportData } from '../types';
-
-// Type helper for diary entries
-function asDiaryEntry(doc: unknown): DiaryEntry {
-    return doc as DiaryEntry;
-}
-
-function asDiaryEntryArray(docs: unknown[]): DiaryEntry[] {
-    return docs as DiaryEntry[];
-}
 
 // Type helper for user stats
 function asUserStatsDoc(doc: unknown): UserStatsDoc {
     return doc as UserStatsDoc;
-}
-
-export async function getDiaryEntryForDate(userId: string, date: string): Promise<DiaryEntry | null> {
-    try {
-        const response = await databases.listDocuments(
-            DATABASE_ID,
-            COLLECTIONS.DIARY_ENTRIES,
-            [
-                Query.equal('user_id', userId),
-                Query.equal('date', date),
-                Query.limit(1),
-            ]
-        );
-
-        if (response.documents.length > 0) {
-            return asDiaryEntry(response.documents[0]);
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching diary entry:', error);
-        return null;
-    }
-}
-
-export async function saveDiaryEntry(
-    userId: string,
-    date: string,
-    mood: 'great' | 'good' | 'neutral' | 'bad' | 'terrible',
-    note: string,
-    energyLevel: number
-): Promise<DiaryEntry | null> {
-    try {
-        // Check if entry exists for this date
-        const existing = await databases.listDocuments(
-            DATABASE_ID,
-            COLLECTIONS.DIARY_ENTRIES,
-            [
-                Query.equal('user_id', userId),
-                Query.equal('date', date),
-                Query.limit(1),
-            ]
-        );
-
-        if (existing.documents.length > 0) {
-            // Update existing
-            const updated = await databases.updateDocument(
-                DATABASE_ID,
-                COLLECTIONS.DIARY_ENTRIES,
-                existing.documents[0].$id,
-                { mood, note, energy_level: energyLevel }
-            );
-            return asDiaryEntry(updated);
-        } else {
-            // Create new
-            const created = await databases.createDocument(
-                DATABASE_ID,
-                COLLECTIONS.DIARY_ENTRIES,
-                ID.unique(),
-                {
-                    user_id: userId,
-                    date,
-                    mood,
-                    note,
-                    energy_level: energyLevel,
-                }
-            );
-            return asDiaryEntry(created);
-        }
-    } catch (error) {
-        console.error('Error saving diary entry:', error);
-        return null;
-    }
-}
-
-// Get all diary entries for a user (for export)
-export async function getAllDiaryEntries(userId: string): Promise<DiaryEntry[]> {
-    try {
-        const response = await databases.listDocuments(
-            DATABASE_ID,
-            COLLECTIONS.DIARY_ENTRIES,
-            [
-                Query.equal('user_id', userId),
-                Query.orderDesc('date'),
-                Query.limit(1000),
-            ]
-        );
-        return asDiaryEntryArray(response.documents);
-    } catch (error) {
-        console.error('Error fetching all diary entries:', error);
-        return [];
-    }
 }
 
 
@@ -1125,12 +1023,11 @@ export async function incrementMealCount(userId: string, count: number = 1): Pro
 // ============ Data Export/Import API ============
 
 export async function exportAllData(userId: string): Promise<ExportData> {
-    const [profile, weightLogs, habits, workoutLogs, diaryEntries] = await Promise.all([
+    const [profile, weightLogs, habits, workoutLogs] = await Promise.all([
         getProfile(userId),
         getWeightLogs(userId, 10000),
         getAllHabits(userId),
         getWorkoutLogs(userId, 10000),
-        getAllDiaryEntries(userId),
     ]);
 
     return {
@@ -1141,7 +1038,6 @@ export async function exportAllData(userId: string): Promise<ExportData> {
         habitLogs: [],
         workoutLogs,
         mealLogs: [],
-        diaryEntries,
     };
 }
 
@@ -1150,11 +1046,6 @@ export async function importData(userId: string, data: ExportData): Promise<bool
         // Import weight logs
         for (const log of data.weightLogs) {
             await addWeightLog(userId, log.weight, log.fat_percentage ?? undefined, log.date);
-        }
-
-        // Import diary entries
-        for (const entry of data.diaryEntries) {
-            await saveDiaryEntry(userId, entry.date, entry.mood, entry.note, entry.energy_level);
         }
 
         // Import workout logs
@@ -1238,7 +1129,6 @@ export async function deleteAllUserData(userId: string): Promise<{
             { name: 'meal_logs', id: COLLECTIONS.MEAL_LOGS },
             { name: 'favorite_meals', id: COLLECTIONS.FAVORITE_MEALS },
             { name: 'meal_presets', id: COLLECTIONS.MEAL_PRESETS },
-            { name: 'diary_entries', id: COLLECTIONS.DIARY_ENTRIES },
             { name: 'user_stats', id: COLLECTIONS.USER_STATS },
         ];
 
