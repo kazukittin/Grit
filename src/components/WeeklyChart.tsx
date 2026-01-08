@@ -15,13 +15,32 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
     const tickColor = theme === 'dark' ? '#737373' : '#64748b';
     const dotStrokeColor = theme === 'dark' ? '#0a0a0a' : '#ffffff';
 
-    const chartData = logs.map(log => ({
-        date: new Date(log.date).toLocaleDateString('ja-JP', {
+    // Process data to group by date
+    const processedData = logs.reduce((acc, log) => {
+        const dateStr = log.date;
+        const displayDate = new Date(log.date).toLocaleDateString('ja-JP', {
             month: 'numeric',
             day: 'numeric',
-        }),
-        weight: log.weight,
-    }));
+        });
+
+        if (!acc[dateStr]) {
+            acc[dateStr] = { displayDate };
+        }
+
+        if (log.time_of_day === 'evening') {
+            acc[dateStr].evening = log.weight;
+        } else {
+            // Default to morning if not specified or explicitly morning
+            acc[dateStr].morning = log.weight;
+        }
+
+        return acc;
+    }, {} as Record<string, { displayDate: string; morning?: number; evening?: number }>);
+
+    // Sort by date and convert to array
+    const chartData = Object.keys(processedData)
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+        .map(date => processedData[date]);
 
     // Calculate min/max for better chart scaling
     const weights = logs.map(l => l.weight);
@@ -29,13 +48,18 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
     const minWeight = weights.length > 0 ? Math.floor(Math.min(...weights) - 1) : 0;
     const maxWeight = weights.length > 0 ? Math.ceil(Math.max(...weights) + 1) : 100;
 
-    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) => {
+    const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-grit-surface border border-grit-border rounded-lg px-3 py-2 shadow-xl">
-                    <p className="text-grit-text font-semibold">
-                        {payload[0].value.toFixed(1)}kg
-                    </p>
+                    <p className="text-xs text-grit-text-muted mb-1">{label}</p>
+                    {payload.map((entry: any) => (
+                        <div key={entry.name} className="flex items-center gap-2 text-sm font-semibold text-grit-text">
+                            <span className={`w-2 h-2 rounded-full ${entry.name === 'morning' ? 'bg-orange-500' : 'bg-indigo-500'}`} />
+                            <span>{entry.name === 'morning' ? '朝' : '夜'}:</span>
+                            <span>{entry.value.toFixed(1)}kg</span>
+                        </div>
+                    ))}
                 </div>
             );
         }
@@ -49,7 +73,16 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                     <TrendingUp className="w-5 h-5 text-grit-accent" />
                     <h2 className="text-lg font-semibold text-grit-text">週間推移</h2>
                 </div>
-                <span className="text-sm text-grit-text-muted">直近7日間</span>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                        <span className="text-grit-text-muted">朝</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        <span className="text-grit-text-muted">夜</span>
+                    </div>
+                </div>
             </div>
 
             {chartData.length > 0 ? (
@@ -67,7 +100,7 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                                 </filter>
                             </defs>
                             <XAxis
-                                dataKey="date"
+                                dataKey="displayDate"
                                 axisLine={false}
                                 tickLine={false}
                                 tick={{ fill: tickColor, fontSize: 12 }}
@@ -99,24 +132,52 @@ export const WeeklyChart = ({ logs, targetWeight }: WeeklyChartProps) => {
                                 />
                             )}
 
+                            {/* Morning Line */}
                             <Line
+                                id="morning"
+                                name="morning"
                                 type="monotone"
-                                dataKey="weight"
+                                dataKey="morning"
                                 stroke="#f97316"
-                                strokeWidth={theme === 'dark' ? 4 : 3}
+                                strokeWidth={theme === 'dark' ? 3 : 2}
                                 filter={theme === 'dark' ? 'url(#glow)' : undefined}
                                 dot={{
                                     fill: '#f97316',
                                     stroke: dotStrokeColor,
                                     strokeWidth: 2,
-                                    r: 6,
+                                    r: 4,
                                 }}
                                 activeDot={{
                                     fill: '#f97316',
                                     stroke: '#fff',
-                                    strokeWidth: 3,
-                                    r: 8,
+                                    strokeWidth: 2,
+                                    r: 6,
                                 }}
+                                connectNulls
+                            />
+
+                            {/* Evening Line */}
+                            <Line
+                                id="evening"
+                                name="evening"
+                                type="monotone"
+                                dataKey="evening"
+                                stroke="#6366f1"
+                                strokeWidth={theme === 'dark' ? 3 : 2}
+                                filter={theme === 'dark' ? 'url(#glow)' : undefined}
+                                dot={{
+                                    fill: '#6366f1',
+                                    stroke: dotStrokeColor,
+                                    strokeWidth: 2,
+                                    r: 4,
+                                }}
+                                activeDot={{
+                                    fill: '#6366f1',
+                                    stroke: '#fff',
+                                    strokeWidth: 2,
+                                    r: 6,
+                                }}
+                                connectNulls
                             />
                         </LineChart>
                     </ResponsiveContainer>
