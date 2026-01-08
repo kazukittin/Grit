@@ -1,8 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, ChevronDown, Timer, RotateCcw } from 'lucide-react';
+import { Calendar, Save, Trash2, Loader2, Plus, X, Dumbbell, Flame, ChevronDown, Timer, RotateCcw, Star, Heart } from 'lucide-react';
 import type { WorkoutRoutine, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
+
+// Saved exercise type (for localStorage)
+interface SavedExercise {
+    id: string;
+    name: string;
+    reps: number;
+    unit: 'reps' | 'seconds';
+    sets: number;
+    calories: number;
+}
+
+// LocalStorage key for saved exercises
+const SAVED_EXERCISES_KEY = 'grit_my_exercises';
+
+function loadSavedExercises(): SavedExercise[] {
+    try {
+        const stored = localStorage.getItem(SAVED_EXERCISES_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveSavedExercises(exercises: SavedExercise[]): void {
+    localStorage.setItem(SAVED_EXERCISES_KEY, JSON.stringify(exercises));
+}
 
 interface WorkoutScheduleSettingsProps {
     routines: WorkoutRoutine[];
@@ -61,6 +87,12 @@ export const WorkoutScheduleSettings = ({
     const [expandedDay, setExpandedDay] = useState<number | null>(null);
     const [showExercisePicker, setShowExercisePicker] = useState<number | null>(null);
     const [customExerciseName, setCustomExerciseName] = useState('');
+    const [savedExercises, setSavedExercises] = useState<SavedExercise[]>([]);
+
+    // Load saved exercises from localStorage
+    useEffect(() => {
+        setSavedExercises(loadSavedExercises());
+    }, []);
 
     // Initialize form state from routines
     useEffect(() => {
@@ -135,6 +167,58 @@ export const WorkoutScheduleSettings = ({
             },
         }));
     }, []);
+
+    // Save current exercise to My Exercises
+    const handleSaveToMyExercises = useCallback((exercise: ExerciseItem) => {
+        // Check if already saved (by name)
+        const exists = savedExercises.some(e => e.name.toLowerCase() === exercise.name.toLowerCase());
+        if (exists) {
+            alert('この種目は既に保存されています');
+            return;
+        }
+
+        const newSaved: SavedExercise = {
+            id: generateId(),
+            name: exercise.name,
+            reps: exercise.reps,
+            unit: exercise.unit,
+            sets: exercise.sets,
+            calories: exercise.calories,
+        };
+
+        const updated = [newSaved, ...savedExercises];
+        setSavedExercises(updated);
+        saveSavedExercises(updated);
+    }, [savedExercises]);
+
+    // Add saved exercise to current day
+    const handleAddSavedExercise = useCallback((day: number, saved: SavedExercise) => {
+        const newExercise: ExerciseItem = {
+            id: generateId(),
+            name: saved.name,
+            reps: saved.reps,
+            unit: saved.unit,
+            sets: saved.sets,
+            calories: saved.calories,
+        };
+
+        setDayForms(prev => ({
+            ...prev,
+            [day]: {
+                ...prev[day],
+                exercises: [...prev[day].exercises, newExercise],
+                isDirty: true,
+            },
+        }));
+        setShowExercisePicker(null);
+    }, []);
+
+    // Delete from My Exercises
+    const handleDeleteFromMyExercises = useCallback((exerciseId: string) => {
+        const updated = savedExercises.filter(e => e.id !== exerciseId);
+        setSavedExercises(updated);
+        saveSavedExercises(updated);
+    }, [savedExercises]);
 
     const handleSave = useCallback(async (day: number) => {
         const form = dayForms[day];
@@ -285,12 +369,21 @@ export const WorkoutScheduleSettings = ({
                                                                             placeholder="エクササイズ名"
                                                                         />
                                                                     </div>
-                                                                    <button
-                                                                        onClick={() => handleRemoveExercise(day, exercise.id)}
-                                                                        className="p-1.5 text-grit-text-dim hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
-                                                                    >
-                                                                        <X className="w-4 h-4" />
-                                                                    </button>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button
+                                                                            onClick={() => handleSaveToMyExercises(exercise)}
+                                                                            className="p-1.5 text-grit-text-dim hover:text-yellow-500 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                                                                            title="マイメニューに登録"
+                                                                        >
+                                                                            <Star className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleRemoveExercise(day, exercise.id)}
+                                                                            className="p-1.5 text-grit-text-dim hover:text-grit-negative hover:bg-grit-negative/10 rounded-lg transition-colors"
+                                                                        >
+                                                                            <X className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
 
                                                                 {/* Exercise Details - Horizontal Grid */}
@@ -435,6 +528,43 @@ export const WorkoutScheduleSettings = ({
                                                                             </button>
                                                                         </div>
                                                                     </div>
+
+                                                                    {/* My Exercises Section */}
+                                                                    {savedExercises.length > 0 && (
+                                                                        <div className="p-3 border-b border-grit-border bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
+                                                                            <div className="text-xs font-bold text-yellow-600 uppercase tracking-wider px-1 mb-2 flex items-center gap-2">
+                                                                                <Heart className="w-4 h-4" />
+                                                                                マイメニュー
+                                                                            </div>
+                                                                            <div className="grid grid-cols-1 gap-2">
+                                                                                {savedExercises.map((saved) => (
+                                                                                    <div
+                                                                                        key={saved.id}
+                                                                                        className="flex items-center gap-2 bg-grit-surface border border-yellow-500/30 rounded-xl overflow-hidden"
+                                                                                    >
+                                                                                        <button
+                                                                                            onClick={() => handleAddSavedExercise(day, saved)}
+                                                                                            className="flex-1 px-4 py-2.5 text-left hover:bg-yellow-500/10 transition-colors"
+                                                                                        >
+                                                                                            <div className="flex items-center justify-between">
+                                                                                                <span className="text-sm font-medium text-grit-text">{saved.name}</span>
+                                                                                                <span className="text-xs text-grit-text-muted">
+                                                                                                    {saved.reps}{saved.unit === 'seconds' ? '秒' : '回'} × {saved.sets}set / {saved.calories * saved.sets}kcal
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleDeleteFromMyExercises(saved.id)}
+                                                                                            className="px-3 py-2.5 text-grit-text-dim hover:text-grit-negative hover:bg-grit-negative/10 transition-colors"
+                                                                                            title="削除"
+                                                                                        >
+                                                                                            <X className="w-4 h-4" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
 
                                                                     {/* Preset Categories */}
                                                                     <div className="max-h-80 overflow-y-auto p-3 space-y-4">
