@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { WorkoutRoutine, WorkoutLog, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
@@ -29,6 +29,7 @@ function parseExercises(description: string): ExerciseItem[] {
 
 export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWorkoutProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
 
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -47,6 +48,24 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
         // 1エクササイズあたり約5分と仮定
         return Math.max(exercises.length * 5, 15);
     }, [exercises]);
+
+    // Compute completed count and if all are done
+    const completedCount = completedExercises.size;
+    const allCompleted = exercises.length > 0 && completedCount === exercises.length;
+    const progressPercent = exercises.length > 0 ? (completedCount / exercises.length) * 100 : 0;
+
+    // Toggle exercise completion
+    const toggleExercise = useCallback((exerciseId: string) => {
+        setCompletedExercises(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(exerciseId)) {
+                newSet.delete(exerciseId);
+            } else {
+                newSet.add(exerciseId);
+            }
+            return newSet;
+        });
+    }, []);
 
     const handleQuickComplete = async () => {
         if (!routine || isSubmitting) return;
@@ -143,37 +162,77 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                         </div>
                     </div>
 
+                    {/* Progress Bar */}
+                    {exercises.length > 0 && (
+                        <div className="mb-3">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="text-grit-text-muted">進捗</span>
+                                <span className={`font-medium ${allCompleted ? 'text-grit-positive' : 'text-grit-accent'}`}>
+                                    {completedCount} / {exercises.length} 完了
+                                </span>
+                            </div>
+                            <div className="h-2 bg-grit-bg rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-300 ${allCompleted ? 'bg-grit-positive' : 'bg-grit-accent'}`}
+                                    style={{ width: `${progressPercent}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {exercises.length > 0 ? (
                         <div className="space-y-2">
-                            {exercises.map((ex, i) => (
-                                <div
-                                    key={ex.id || i}
-                                    className="flex items-center justify-between bg-grit-bg/50 rounded-lg px-3 py-2"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-grit-text-dim w-5">{i + 1}.</span>
-                                        <span className="text-sm font-medium text-grit-text">{ex.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-grit-text-muted">
-                                        <span className="flex items-center gap-1">
-                                            {ex.unit === 'seconds' ? (
-                                                <Timer className="w-3 h-3" />
-                                            ) : (
-                                                <Hash className="w-3 h-3" />
-                                            )}
-                                            {ex.reps}{ex.unit === 'seconds' ? '秒' : '回'}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Layers className="w-3 h-3" />
-                                            {ex.sets}セット
-                                        </span>
-                                        <span className="flex items-center gap-1 text-orange-400">
-                                            <Flame className="w-3 h-3" />
-                                            {ex.calories * ex.sets}kcal
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                            {exercises.map((ex, i) => {
+                                const exerciseKey = ex.id || `ex-${i}`;
+                                const isCompleted = completedExercises.has(exerciseKey);
+
+                                return (
+                                    <button
+                                        key={exerciseKey}
+                                        onClick={() => toggleExercise(exerciseKey)}
+                                        className={`w-full flex items-center gap-3 rounded-lg px-3 py-3 transition-all duration-200 text-left ${isCompleted
+                                            ? 'bg-grit-positive/10 border border-grit-positive/30'
+                                            : 'bg-grit-bg/50 hover:bg-grit-accent/10 border border-transparent'
+                                            }`}
+                                    >
+                                        {/* Checkbox */}
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${isCompleted
+                                            ? 'bg-grit-positive border-grit-positive text-white'
+                                            : 'border-grit-border hover:border-grit-accent'
+                                            }`}>
+                                            {isCompleted && <Check className="w-4 h-4" />}
+                                        </div>
+
+                                        {/* Exercise Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-sm font-medium transition-colors ${isCompleted ? 'text-grit-positive line-through' : 'text-grit-text'
+                                                    }`}>
+                                                    {ex.name}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs text-grit-text-muted mt-0.5">
+                                                <span className="flex items-center gap-1">
+                                                    {ex.unit === 'seconds' ? (
+                                                        <Timer className="w-3 h-3" />
+                                                    ) : (
+                                                        <Hash className="w-3 h-3" />
+                                                    )}
+                                                    {ex.reps}{ex.unit === 'seconds' ? '秒' : '回'}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Layers className="w-3 h-3" />
+                                                    {ex.sets}セット
+                                                </span>
+                                                <span className="flex items-center gap-1 text-orange-400">
+                                                    <Flame className="w-3 h-3" />
+                                                    {ex.calories * ex.sets}kcal
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     ) : (
                         <p className="text-sm text-grit-text-muted">
@@ -186,10 +245,22 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                     <button
                         onClick={handleQuickComplete}
                         disabled={isSubmitting}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50"
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-semibold rounded-xl shadow-lg transition-all ${allCompleted
+                            ? 'bg-gradient-to-br from-grit-positive to-green-600 text-white shadow-grit-positive/30 hover:scale-[1.02] active:scale-[0.98]'
+                            : 'bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98]'
+                            } disabled:opacity-50`}
                     >
-                        <Play className="w-5 h-5" />
-                        完了して記録
+                        {allCompleted ? (
+                            <>
+                                <CheckCircle className="w-5 h-5" />
+                                ワークアウト完了！記録する
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-5 h-5" />
+                                {completedCount > 0 ? `${completedCount}種目完了・記録する` : '完了して記録'}
+                            </>
+                        )}
                     </button>
                     <button
                         onClick={onEdit}
