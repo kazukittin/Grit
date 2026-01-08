@@ -24,6 +24,7 @@ export interface Habit extends Models.Document {
     user_id: string;
     title: string;
     is_active: boolean;
+    order: number; // ソート順
 }
 
 export interface HabitLog extends Models.Document {

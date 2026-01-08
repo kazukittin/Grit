@@ -42,6 +42,7 @@ const collections = [
         name: 'Profiles',
         attributes: [
             { type: 'string', key: 'user_id', size: 36, required: true },
+            { type: 'float', key: 'height', required: false }, // 身長(cm)
             { type: 'float', key: 'target_weight', required: false },
             { type: 'integer', key: 'target_calories', required: false },
             { type: 'integer', key: 'target_protein', required: false },
