@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Calendar } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import type { HeatmapDay } from '../types';
+import { getTodayString, getLocalDateString } from '../lib/dateUtils';
 
 interface ContributionHeatmapProps {
     data: HeatmapDay[];
@@ -35,7 +36,7 @@ export function ContributionHeatmap({ data, months = 3 }: ContributionHeatmapPro
         // Fill in all dates
         const current = new Date(startDate);
         while (current <= endDate) {
-            const dateStr = current.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(current);
             const dayData = dataMap.get(dateStr) || {
                 date: dateStr,
                 level: 0,
@@ -112,7 +113,7 @@ export function ContributionHeatmap({ data, months = 3 }: ContributionHeatmapPro
                         {weeks.map((week, weekIndex) => (
                             <div key={weekIndex} className="flex flex-col gap-[3px]">
                                 {week.map((day) => {
-                                    const isToday = day.date === new Date().toISOString().split('T')[0];
+                                    const isToday = day.date === getTodayString();
                                     const isFuture = new Date(day.date) > new Date();
 
                                     return (

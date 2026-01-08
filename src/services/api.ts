@@ -1,6 +1,7 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
 import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem, UserStatsDoc } from '../types';
+import { getTodayString, getLocalDateString } from '../lib/dateUtils';
 
 // Type helper for Appwrite documents
 function asProfile(doc: unknown): Profile {
@@ -153,7 +154,7 @@ export async function addWeightLog(
     date?: string,
     timeOfDay?: 'morning' | 'evening'
 ): Promise<WeightLog | null> {
-    const logDate = date || new Date().toISOString().split('T')[0];
+    const logDate = date || getTodayString();
 
     try {
         // Build query for checking existing entry
@@ -453,7 +454,7 @@ export async function getHeatmapData(
         const end = new Date(endDate);
 
         while (current <= end) {
-            const dateStr = current.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(current);
             const weightLogged = weightDates.has(dateStr);
             const habitsCompleted = habitLogsByDate.get(dateStr) || 0;
 
@@ -658,7 +659,7 @@ export async function addWorkoutLog(
     durationMin: number,
     date?: string
 ): Promise<WorkoutLog | null> {
-    const logDate = date || new Date().toISOString().split('T')[0];
+    const logDate = date || getTodayString();
 
     try {
         // Check if entry exists for this date
@@ -756,7 +757,7 @@ export async function addMealLog(
     carbs?: number | null,
     date?: string
 ): Promise<MealLog | null> {
-    const logDate = date || new Date().toISOString().split('T')[0];
+    const logDate = date || getTodayString();
 
     try {
         const created = await databases.createDocument(
@@ -841,16 +842,16 @@ export async function getStreakData(userId: string): Promise<{ currentStreak: nu
             .map((l) => l.date)
             .sort((a, b) => b.localeCompare(a));
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayString();
         let currentStreak = 0;
         let longestStreak = 0;
         let streak = 0;
-        const expectedDate = new Date(today);
+        const expectedDate = new Date(today + 'T00:00:00');
 
         // Calculate current streak
         for (let i = 0; i < sortedDates.length; i++) {
             const date = sortedDates[i];
-            const expected = expectedDate.toISOString().split('T')[0];
+            const expected = getLocalDateString(expectedDate);
 
             if (date === expected) {
                 currentStreak++;
