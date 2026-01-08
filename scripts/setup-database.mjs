@@ -192,6 +192,18 @@ const collections = [
             { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
         ],
     },
+    {
+        id: 'user_stats',
+        name: 'User Stats',
+        attributes: [
+            { type: 'string', key: 'user_id', size: 36, required: true },
+            { type: 'integer', key: 'total_habits_completed', required: false, default: 0 },
+            { type: 'integer', key: 'total_meals_logged', required: false, default: 0 },
+        ],
+        indexes: [
+            { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
+        ],
+    },
 ];
 
 // ============ Helper Functions ============

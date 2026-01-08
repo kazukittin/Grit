@@ -173,19 +173,22 @@ export interface UserAchievement {
 
 // ============ Diary / Notes ============
 
-// DiaryEntry is stored in localStorage, so doesn't need to extend Models.Document
-export interface DiaryEntry {
-    $id: string;
-    $createdAt: string;
-    $updatedAt: string;
-    $permissions?: string[];
-    $collectionId?: string;
-    $databaseId?: string;
+// DiaryEntry is now stored in Appwrite database
+export interface DiaryEntry extends Models.Document {
     user_id: string;
     date: string;
     mood: 'great' | 'good' | 'neutral' | 'bad' | 'terrible';
     note: string;
     energy_level: number; // 1-5
+}
+
+// ============ User Stats (stored in Appwrite) ============
+
+// User statistics for achievements tracking (replaces localStorage counters)
+export interface UserStatsDoc extends Models.Document {
+    user_id: string;
+    total_habits_completed: number;  // 累計習慣完了数
+    total_meals_logged: number;      // 累計食事記録数
 }
 
 // ============ Statistics ============

@@ -227,7 +227,7 @@ export function DashboardPage() {
             );
         } else if (completed) {
             // Track for achievements
-            incrementHabitCompletions(user.$id);
+            await incrementHabitCompletions(user.$id);
         }
     }, [user, today]);
 
@@ -271,7 +271,7 @@ export function DashboardPage() {
         if (newMeal) {
             setTodayMeals(prev => [...prev, newMeal]);
             // Track for achievements
-            incrementMealCount(user.$id);
+            await incrementMealCount(user.$id);
         }
         setIsMealModalOpen(false);
     }, [user, today]);
