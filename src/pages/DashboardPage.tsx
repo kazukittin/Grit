@@ -111,8 +111,42 @@ export function DashboardPage() {
     });
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+    // 日付をステートとして管理し、日付が変わったら自動更新
+    const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
 
-    const today = new Date().toISOString().split('T')[0];
+    // ページがフォーカスされたときや定期的に日付をチェック
+    useEffect(() => {
+        const checkDateChange = () => {
+            const currentDate = new Date().toISOString().split('T')[0];
+            if (currentDate !== today) {
+                setToday(currentDate);
+            }
+        };
+
+        // ページがフォーカスされたときにチェック
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkDateChange();
+            }
+        };
+
+        // ウィンドウにフォーカスが戻ったときにチェック
+        const handleFocus = () => {
+            checkDateChange();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        // 1分ごとにも日付をチェック（深夜0時を跨ぐケース対応）
+        const intervalId = setInterval(checkDateChange, 60000);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+            clearInterval(intervalId);
+        };
+    }, [today]);
 
     const loadData = useCallback(async () => {
         if (!user) return;

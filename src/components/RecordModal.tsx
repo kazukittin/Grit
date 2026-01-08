@@ -9,10 +9,10 @@ interface RecordModalProps {
 }
 
 export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
-    const today = new Date().toISOString().split('T')[0];
+    const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
     const currentHour = new Date().getHours();
 
-    const [date, setDate] = useState(today);
     const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(currentHour < 12 ? 'morning' : 'evening');
     const [weight, setWeight] = useState('');
     const [bodyFat, setBodyFat] = useState('');
@@ -20,10 +20,13 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
 
     useEffect(() => {
         if (isOpen) {
+            // モーダルが開かれるたびに最新の日付を取得
+            const currentDate = new Date().toISOString().split('T')[0];
+            setToday(currentDate);
+            setDate(currentDate);
             setTimeOfDay(new Date().getHours() < 12 ? 'morning' : 'evening');
-            setDate(today);
         }
-    }, [isOpen, today]);
+    }, [isOpen]);
 
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
@@ -54,12 +57,11 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
     );
 
     const handleClose = useCallback(() => {
-        setDate(today);
         setWeight('');
         setBodyFat('');
         setError('');
         onClose();
-    }, [onClose, today]);
+    }, [onClose]);
 
     if (!isOpen) return null;
 
@@ -122,8 +124,8 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
                                     type="button"
                                     onClick={() => setTimeOfDay('morning')}
                                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${timeOfDay === 'morning'
-                                            ? 'bg-orange-500/10 text-orange-500 shadow-sm'
-                                            : 'text-grit-text-muted hover:bg-grit-surface'
+                                        ? 'bg-orange-500/10 text-orange-500 shadow-sm'
+                                        : 'text-grit-text-muted hover:bg-grit-surface'
                                         }`}
                                 >
                                     <Sunrise className="w-4 h-4" />
@@ -133,8 +135,8 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
                                     type="button"
                                     onClick={() => setTimeOfDay('evening')}
                                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${timeOfDay === 'evening'
-                                            ? 'bg-indigo-500/10 text-indigo-500 shadow-sm'
-                                            : 'text-grit-text-muted hover:bg-grit-surface'
+                                        ? 'bg-indigo-500/10 text-indigo-500 shadow-sm'
+                                        : 'text-grit-text-muted hover:bg-grit-surface'
                                         }`}
                                 >
                                     <Moon className="w-4 h-4" />
