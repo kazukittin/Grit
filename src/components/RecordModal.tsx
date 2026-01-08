@@ -44,11 +44,12 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
     );
 
     const handleClose = useCallback(() => {
+        setDate(today);
         setWeight('');
         setBodyFat('');
         setError('');
         onClose();
-    }, [onClose]);
+    }, [onClose, today]);
 
     if (!isOpen) return null;
 
