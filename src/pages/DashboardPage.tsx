@@ -62,6 +62,7 @@ import {
 } from '../services/api';
 import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, AchievementStats, FavoriteMeal, MealPreset } from '../types';
 import type { SetupData } from '../components/InitialSetupWizard';
+import { getTodayString } from '../lib/dateUtils';
 
 export function DashboardPage() {
     const { user } = useAuth();
@@ -112,12 +113,12 @@ export function DashboardPage() {
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // 日付をステートとして管理し、日付が変わったら自動更新
-    const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
+    const [today, setToday] = useState(() => getTodayString());
 
     // ページがフォーカスされたときや定期的に日付をチェック
     useEffect(() => {
         const checkDateChange = () => {
-            const currentDate = new Date().toISOString().split('T')[0];
+            const currentDate = getTodayString();
             if (currentDate !== today) {
                 setToday(currentDate);
             }

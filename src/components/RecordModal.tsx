@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { X, Save, Calendar, Scale, Percent, Sunrise, Moon } from 'lucide-react';
 import type { TimeOfDay } from '../types';
+import { getTodayString } from '../lib/dateUtils';
 
 interface RecordModalProps {
     isOpen: boolean;
@@ -9,8 +10,8 @@ interface RecordModalProps {
 }
 
 export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
-    const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
-    const [today, setToday] = useState(() => new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(() => getTodayString());
+    const [today, setToday] = useState(() => getTodayString());
     const currentHour = new Date().getHours();
 
     const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(currentHour < 12 ? 'morning' : 'evening');
@@ -21,7 +22,7 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
     useEffect(() => {
         if (isOpen) {
             // モーダルが開かれるたびに最新の日付を取得
-            const currentDate = new Date().toISOString().split('T')[0];
+            const currentDate = getTodayString();
             setToday(currentDate);
             setDate(currentDate);
             setTimeOfDay(new Date().getHours() < 12 ? 'morning' : 'evening');
