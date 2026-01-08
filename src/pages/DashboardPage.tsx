@@ -17,6 +17,7 @@ import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
 import { DiaryModal, MoodCard } from '../components/DiaryModal';
 import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
 import { AchievementManager } from '../components/Achievements';
+import { getUnlockedAchievements } from '../lib/achievements';
 import { InitialSetupWizard, useInitialSetup } from '../components/InitialSetupWizard';
 import {
     SkeletonSummaryCard,
@@ -106,7 +107,12 @@ export function DashboardPage() {
 
     // Achievement state
     const [achievementStats, setAchievementStats] = useState<AchievementStats | null>(null);
-    const [previousUnlockedIds, setPreviousUnlockedIds] = useState<string[]>([]);
+    const [previousUnlockedIds, setPreviousUnlockedIds] = useState<string[]>(() => {
+        // Initialize from localStorage to persist across page loads
+        const stored = localStorage.getItem('grit_unlocked_achievements');
+        return stored ? JSON.parse(stored) : [];
+    });
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
 
     const today = new Date().toISOString().split('T')[0];
@@ -196,6 +202,19 @@ export function DashboardPage() {
             setAchievementStats(stats);
             setFavoriteMeals(favorites);
             setMealPresets(presets);
+
+            // On initial load, set all currently unlocked achievements as "previous"
+            // to prevent showing unlock notifications for already-unlocked achievements
+            if (isInitialLoad) {
+                const currentlyUnlocked = getUnlockedAchievements(stats);
+                const currentIds = currentlyUnlocked.map(a => a.id);
+                // Merge with stored IDs to handle any new achievements unlocked while offline
+                const storedIds = JSON.parse(localStorage.getItem('grit_unlocked_achievements') || '[]');
+                const mergedIds = [...new Set([...storedIds, ...currentIds])];
+                setPreviousUnlockedIds(mergedIds);
+                localStorage.setItem('grit_unlocked_achievements', JSON.stringify(mergedIds));
+                setIsInitialLoad(false);
+            }
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -592,7 +611,11 @@ export function DashboardPage() {
                     previousUnlockedIds={previousUnlockedIds}
                     onAchievementUnlocked={(achievement) => {
                         // Add to previously unlocked to avoid showing again
-                        setPreviousUnlockedIds(prev => [...prev, achievement.id]);
+                        setPreviousUnlockedIds(prev => {
+                            const updated = [...prev, achievement.id];
+                            localStorage.setItem('grit_unlocked_achievements', JSON.stringify(updated));
+                            return updated;
+                        });
                     }}
                 />
             )}
