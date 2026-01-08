@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat, Star, Plus } from 'lucide-react';
+import { X, Utensils, Flame, ChevronDown, ChevronUp, Beef, Droplets, Wheat, Star, Plus, Check } from 'lucide-react';
 import type { MealLog, MealType } from '../types';
 import { MEAL_TYPES } from '../types';
 
@@ -30,6 +30,8 @@ export const MealModal = ({
     const [mealType, setMealType] = useState<MealType>(initialMealType);
     const [isSaving, setIsSaving] = useState(false);
     const [showPFC, setShowPFC] = useState(false);
+    const [favoriteAdded, setFavoriteAdded] = useState(false);
+    const [isAddingFavorite, setIsAddingFavorite] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -50,6 +52,7 @@ export const MealModal = ({
                 setCarbs('');
                 setMealType(initialMealType);
                 setShowPFC(false);
+                setFavoriteAdded(false);
             }
         }
     }, [isOpen, editingMeal, initialMealType]);
@@ -274,16 +277,35 @@ export const MealModal = ({
                                 <button
                                     type="button"
                                     onClick={async () => {
+                                        if (isAddingFavorite || favoriteAdded) return;
+                                        setIsAddingFavorite(true);
                                         const caloriesNum = parseInt(calories) || 0;
                                         const proteinNum = protein ? parseFloat(protein) : undefined;
                                         const fatNum = fat ? parseFloat(fat) : undefined;
                                         const carbsNum = carbs ? parseFloat(carbs) : undefined;
                                         await onAddToFavorites(foodName.trim(), caloriesNum, proteinNum, fatNum, carbsNum);
+                                        setIsAddingFavorite(false);
+                                        setFavoriteAdded(true);
+                                        // Reset after 2 seconds
+                                        setTimeout(() => setFavoriteAdded(false), 2000);
                                     }}
-                                    className="w-14 h-14 bg-yellow-500/20 text-yellow-500 rounded-xl border border-yellow-500/50 flex items-center justify-center hover:bg-yellow-500/30 transition-colors"
+                                    disabled={isAddingFavorite}
+                                    className={`relative min-w-14 h-14 rounded-xl border flex items-center justify-center transition-all duration-300 overflow-hidden ${favoriteAdded
+                                            ? 'bg-green-500 border-green-500 text-white px-4 gap-2'
+                                            : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50 hover:bg-yellow-500/30 hover:scale-105 active:scale-95'
+                                        }`}
                                     title="お気に入りに追加"
                                 >
-                                    <Star className="w-5 h-5" />
+                                    {isAddingFavorite ? (
+                                        <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                                    ) : favoriteAdded ? (
+                                        <>
+                                            <Check className="w-5 h-5 animate-bounce-in" />
+                                            <span className="text-sm font-medium whitespace-nowrap animate-fade-in">追加完了!</span>
+                                        </>
+                                    ) : (
+                                        <Star className="w-5 h-5 transition-transform hover:rotate-12" />
+                                    )}
                                 </button>
                             )}
 
