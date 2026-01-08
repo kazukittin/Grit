@@ -1,19 +1,29 @@
-import { useState, useCallback } from 'react';
-import { X, Save, Calendar, Scale, Percent } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { X, Save, Calendar, Scale, Percent, Sunrise, Moon } from 'lucide-react';
+import type { TimeOfDay } from '../types';
 
 interface RecordModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: { date: string; weight: number; bodyFat?: number }) => void;
+    onSave: (data: { date: string; weight: number; bodyFat?: number; timeOfDay?: TimeOfDay }) => void;
 }
 
 export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
     const today = new Date().toISOString().split('T')[0];
+    const currentHour = new Date().getHours();
 
     const [date, setDate] = useState(today);
+    const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(currentHour < 12 ? 'morning' : 'evening');
     const [weight, setWeight] = useState('');
     const [bodyFat, setBodyFat] = useState('');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setTimeOfDay(new Date().getHours() < 12 ? 'morning' : 'evening');
+            setDate(today);
+        }
+    }, [isOpen, today]);
 
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
@@ -35,12 +45,12 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
                 }
             }
 
-            onSave({ date, weight: weightNum, bodyFat: bodyFatNum });
+            onSave({ date, weight: weightNum, bodyFat: bodyFatNum, timeOfDay });
             setWeight('');
             setBodyFat('');
             onClose();
         },
-        [date, weight, bodyFat, onSave, onClose]
+        [date, weight, bodyFat, timeOfDay, onSave, onClose]
     );
 
     const handleClose = useCallback(() => {
@@ -87,19 +97,51 @@ export const RecordModal = ({ isOpen, onClose, onSave }: RecordModalProps) => {
                         </div>
                     )}
 
-                    {/* Date input */}
-                    <div className="mb-4">
-                        <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
-                            <Calendar className="w-4 h-4" />
-                            日付
-                        </label>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={e => setDate(e.target.value)}
-                            max={today}
-                            className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text focus:outline-none focus:border-grit-accent transition-colors"
-                        />
+                    {/* Date & Time Date input */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
+                                <Calendar className="w-4 h-4" />
+                                日付
+                            </label>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                max={today}
+                                className="w-full px-4 py-3 bg-grit-bg border border-grit-border rounded-xl text-grit-text focus:outline-none focus:border-grit-accent transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-grit-text-muted mb-2">
+                                {timeOfDay === 'morning' ? <Sunrise className="w-4 h-4 text-orange-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                                時間帯
+                            </label>
+                            <div className="flex bg-grit-bg rounded-xl border border-grit-border p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setTimeOfDay('morning')}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${timeOfDay === 'morning'
+                                            ? 'bg-orange-500/10 text-orange-500 shadow-sm'
+                                            : 'text-grit-text-muted hover:bg-grit-surface'
+                                        }`}
+                                >
+                                    <Sunrise className="w-4 h-4" />
+                                    朝
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTimeOfDay('evening')}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${timeOfDay === 'evening'
+                                            ? 'bg-indigo-500/10 text-indigo-500 shadow-sm'
+                                            : 'text-grit-text-muted hover:bg-grit-surface'
+                                        }`}
+                                >
+                                    <Moon className="w-4 h-4" />
+                                    夜
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Weight input */}

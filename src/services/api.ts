@@ -150,20 +150,28 @@ export async function addWeightLog(
     userId: string,
     weight: number,
     fatPercentage?: number,
-    date?: string
+    date?: string,
+    timeOfDay?: 'morning' | 'evening'
 ): Promise<WeightLog | null> {
     const logDate = date || new Date().toISOString().split('T')[0];
 
     try {
-        // Check if entry exists for this date
+        // Build query for checking existing entry
+        const queries = [
+            Query.equal('user_id', userId),
+            Query.equal('date', logDate),
+            Query.limit(1),
+        ];
+
+        // If time_of_day is specified, check for that specific time slot
+        if (timeOfDay) {
+            queries.splice(2, 0, Query.equal('time_of_day', timeOfDay));
+        }
+
         const existing = await databases.listDocuments(
             DATABASE_ID,
             COLLECTIONS.WEIGHT_LOGS,
-            [
-                Query.equal('user_id', userId),
-                Query.equal('date', logDate),
-                Query.limit(1),
-            ]
+            queries
         );
 
         if (existing.documents.length > 0) {
@@ -172,7 +180,11 @@ export async function addWeightLog(
                 DATABASE_ID,
                 COLLECTIONS.WEIGHT_LOGS,
                 existing.documents[0].$id,
-                { weight, fat_percentage: fatPercentage ?? null }
+                {
+                    weight,
+                    fat_percentage: fatPercentage ?? null,
+                    time_of_day: timeOfDay ?? null,
+                }
             );
             return asWeightLog(updated);
         } else {
@@ -186,6 +198,7 @@ export async function addWeightLog(
                     weight,
                     fat_percentage: fatPercentage ?? null,
                     date: logDate,
+                    time_of_day: timeOfDay ?? null,
                 }
             );
             return asWeightLog(created);

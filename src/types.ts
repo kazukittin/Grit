@@ -18,7 +18,10 @@ export interface WeightLog extends Models.Document {
     weight: number;
     fat_percentage: number | null;
     date: string; // ISO date string
+    time_of_day: 'morning' | 'evening' | null; // 朝/夜
 }
+
+export type TimeOfDay = 'morning' | 'evening';
 
 export interface Habit extends Models.Document {
     user_id: string;

@@ -61,6 +61,7 @@ const collections = [
         attributes: [
             { type: 'string', key: 'user_id', size: 36, required: true },
             { type: 'string', key: 'date', size: 10, required: true }, // YYYY-MM-DD
+            { type: 'enum', key: 'time_of_day', elements: ['morning', 'evening'], required: false }, // 朝/夜
             { type: 'float', key: 'weight', required: true },
             { type: 'float', key: 'fat_percentage', required: false },
         ],

@@ -250,10 +250,10 @@ export function DashboardPage() {
         }
     }, [user, today]);
 
-    const handleSaveRecord = useCallback(async (record: { date: string; weight: number; bodyFat?: number }) => {
+    const handleSaveRecord = useCallback(async (record: { date: string; weight: number; bodyFat?: number; timeOfDay?: 'morning' | 'evening' }) => {
         if (!user) return;
 
-        const newLog = await addWeightLog(user.$id, record.weight, record.bodyFat, record.date);
+        const newLog = await addWeightLog(user.$id, record.weight, record.bodyFat, record.date, record.timeOfDay);
         if (newLog) {
             await loadData();
         }
