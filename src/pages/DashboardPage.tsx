@@ -15,7 +15,6 @@ import { MealDashboard } from '../components/MealDashboard';
 import { MealModal } from '../components/MealModal';
 import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
 
-import { OnboardingTour, useOnboarding } from '../components/OnboardingTour';
 import { AchievementManager } from '../components/Achievements';
 import { getUnlockedAchievements } from '../lib/achievements';
 import { InitialSetupWizard, useInitialSetup } from '../components/InitialSetupWizard';
@@ -67,9 +66,6 @@ import { getTodayString } from '../lib/dateUtils';
 export function DashboardPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
-
-    // Onboarding
-    const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
 
     // Initial setup wizard
     const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup();
@@ -610,14 +606,6 @@ export function DashboardPage() {
                 initialMealType={selectedMealType}
             />
 
-
-
-            {/* Onboarding Tour */}
-            <OnboardingTour
-                isOpen={showOnboarding}
-                onComplete={completeOnboarding}
-                onSkip={skipOnboarding}
-            />
 
             {/* Achievement Toast Manager */}
             {achievementStats && (

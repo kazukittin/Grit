@@ -1151,9 +1151,8 @@ export async function deleteAllUserData(userId: string): Promise<{
         keysToDelete.forEach(key => localStorage.removeItem(key));
         deletedCounts['localStorage'] = keysToDelete.length;
 
-        // Clear setup and onboarding flags
+        // Clear setup flag
         localStorage.removeItem('grit_initial_setup_completed');
-        localStorage.removeItem('grit_onboarding_completed');
 
         return {
             success: true,
