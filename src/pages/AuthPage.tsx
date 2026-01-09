@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
 import { account } from '../lib/appwrite';
 import { OAuthProvider, ID } from 'appwrite';
@@ -206,6 +207,18 @@ export function AuthPage() {
                                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {mode === 'login' ? 'ログイン' : 'アカウント作成'}
                             </button>
+
+                            {/* Forgot Password Link */}
+                            {mode === 'login' && (
+                                <div className="mt-3 text-center">
+                                    <Link
+                                        to="/reset-password"
+                                        className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                                    >
+                                        パスワードを忘れた方はこちら
+                                    </Link>
+                                </div>
+                            )}
                         </form>
                     </div>
                 </div>
