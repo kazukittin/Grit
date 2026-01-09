@@ -6,8 +6,10 @@ import { OAuthProvider, ID } from 'appwrite';
 
 export function AuthPage() {
     const [loading, setLoading] = useState(false);
+    const [magicLinkLoading, setMagicLinkLoading] = useState(false);
     const [error, setError] = useState('');
     const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const [magicLinkSent, setMagicLinkSent] = useState(false);
 
     // Form state
     const [email, setEmail] = useState('');
@@ -44,6 +46,45 @@ export function AuthPage() {
             setLoading(false);
         }
     }, []);
+
+    // Magic Link handler
+    const handleMagicLink = useCallback(async () => {
+        setError('');
+        setMagicLinkSent(false);
+
+        // Normalize email
+        const cleanEmail = email
+            .replace(/[Ａ-Ｚａ-ｚ０-９！-～]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/\s+/g, '')
+            .trim()
+            .toLowerCase();
+
+        if (!cleanEmail.includes('.') || !cleanEmail.includes('@')) {
+            setError('有効なメールアドレスを入力してください');
+            return;
+        }
+
+        setMagicLinkLoading(true);
+
+        try {
+            const currentUrl = window.location.origin;
+            const basePath = import.meta.env.BASE_URL || '/';
+            const baseUrl = `${currentUrl}${basePath}`.replace(/\/$/, '');
+            const callbackUrl = `${baseUrl}/magic-callback`;
+
+            await account.createMagicURLToken(ID.unique(), cleanEmail, callbackUrl);
+            setMagicLinkSent(true);
+        } catch (err: any) {
+            console.error('Magic link error:', err);
+            if (err?.code === 429) {
+                setError('送信回数の上限に達しました。しばらく待ってからお試しください。');
+            } else {
+                setError('ログインリンクの送信に失敗しました。もう一度お試しください。');
+            }
+        } finally {
+            setMagicLinkLoading(false);
+        }
+    }, [email]);
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -262,6 +303,42 @@ export function AuthPage() {
                         </>
                     )}
                 </button>
+
+                {/* Magic Link Section */}
+                <div className="mt-4">
+                    <div className="mb-3 flex items-center">
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                        <span className="px-4 text-xs text-slate-400">スマホでログインできない方</span>
+                        <div className="flex-1 h-px bg-slate-200"></div>
+                    </div>
+
+                    {magicLinkSent ? (
+                        <div className="p-4 rounded-xl bg-green-50 border border-green-200">
+                            <p className="text-sm text-green-700 text-center">
+                                📧 ログインリンクを送信しました！<br />
+                                <span className="text-green-600">メールをご確認ください。</span>
+                            </p>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleMagicLink}
+                            disabled={magicLinkLoading || !email}
+                            className="w-full py-2.5 px-4 bg-slate-100 border border-slate-200 text-slate-600 font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-slate-150 hover:border-slate-300 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                            {magicLinkLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+                            ) : (
+                                <>
+                                    <Mail className="w-4 h-4" />
+                                    <span>メールでログインリンクを送信</span>
+                                </>
+                            )}
+                        </button>
+                    )}
+                    <p className="mt-2 text-xs text-slate-400 text-center">
+                        上のメールアドレス欄に入力してボタンを押してください
+                    </p>
+                </div>
             </div>
 
             {/* Features Link - Simplified for mobile */}

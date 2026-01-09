@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthPage } from './pages/AuthPage';
 import { PasswordResetPage } from './pages/PasswordResetPage';
+import { MagicLinkCallbackPage } from './pages/MagicLinkCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Loader2 } from 'lucide-react';
@@ -78,6 +79,10 @@ function AppRoutes() {
             <PasswordResetPage />
           </PublicRoute>
         }
+      />
+      <Route
+        path="/magic-callback"
+        element={<MagicLinkCallbackPage />}
       />
       <Route
         path="/"
