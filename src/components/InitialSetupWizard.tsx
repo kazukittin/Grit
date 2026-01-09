@@ -701,35 +701,39 @@ export function InitialSetupWizard({ isOpen, onComplete, onSkip }: InitialSetupW
 
 // Hook to manage initial setup state
 const SETUP_COMPLETED_KEY = 'grit_initial_setup_completed';
+const getSetupKey = (userId?: string | null) =>
+    userId ? `${SETUP_COMPLETED_KEY}:${userId}` : SETUP_COMPLETED_KEY;
 
-export function useInitialSetup() {
+export function useInitialSetup(userId?: string | null) {
     const [showSetup, setShowSetup] = useState(false);
     const [hasChecked, setHasChecked] = useState(false);
 
     const checkSetupStatus = (_profileHasTargets?: boolean) => {
-        const completed = localStorage.getItem(SETUP_COMPLETED_KEY);
+        const completed = localStorage.getItem(getSetupKey(userId));
 
         // Show setup if:
         // 1. Setup hasn't been completed/skipped before (localStorage entry doesn't exist)
         // Note: If user resets via settings, the key is removed so wizard shows again
-        if (!completed) {
+        if (!completed && !_profileHasTargets) {
             setShowSetup(true);
+        } else if (_profileHasTargets && !completed) {
+            localStorage.setItem(getSetupKey(userId), 'true');
         }
         setHasChecked(true);
     };
 
     const completeSetup = () => {
-        localStorage.setItem(SETUP_COMPLETED_KEY, 'true');
+        localStorage.setItem(getSetupKey(userId), 'true');
         setShowSetup(false);
     };
 
     const skipSetup = () => {
-        localStorage.setItem(SETUP_COMPLETED_KEY, 'skipped');
+        localStorage.setItem(getSetupKey(userId), 'skipped');
         setShowSetup(false);
     };
 
     const resetSetup = () => {
-        localStorage.removeItem(SETUP_COMPLETED_KEY);
+        localStorage.removeItem(getSetupKey(userId));
     };
 
     return {

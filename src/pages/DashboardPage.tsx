@@ -68,7 +68,7 @@ export function DashboardPage() {
     const navigate = useNavigate();
 
     // Initial setup wizard
-    const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup();
+    const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup(user?.$id);
 
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<Profile | null>(null);
