@@ -158,12 +158,16 @@ export async function addWeightLog(
 
     try {
         // Build query for checking existing entry
-        // Note: time_of_day is not yet in schema, so we just check by date
         const queries = [
             Query.equal('user_id', userId),
             Query.equal('date', logDate),
             Query.limit(1),
         ];
+
+        // If time_of_day is specified, check for that specific time slot
+        if (timeOfDay) {
+            queries.splice(2, 0, Query.equal('time_of_day', timeOfDay));
+        }
 
         const existing = await databases.listDocuments(
             DATABASE_ID,
@@ -180,7 +184,7 @@ export async function addWeightLog(
                 {
                     weight,
                     fat_percentage: fatPercentage ?? null,
-                    // time_of_day is not in schema yet
+                    time_of_day: timeOfDay ?? null,
                 }
             );
             return asWeightLog(updated);
@@ -195,7 +199,7 @@ export async function addWeightLog(
                     weight,
                     fat_percentage: fatPercentage ?? null,
                     date: logDate,
-                    // time_of_day is not in schema yet
+                    time_of_day: timeOfDay ?? null,
                 }
             );
             return asWeightLog(created);
