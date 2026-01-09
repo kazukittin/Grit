@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Loader2, Mail, Lock, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, CheckCircle, ArrowLeft, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { account } from '../lib/appwrite';
 
 type ResetMode = 'request' | 'reset' | 'success';
@@ -16,6 +16,8 @@ export function PasswordResetPage() {
     const [email, setEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // URL params for password reset
     const userId = searchParams.get('userId');
@@ -58,12 +60,12 @@ export function PasswordResetPage() {
             const resetUrl = `${baseUrl}/reset-password`;
 
             await account.createRecovery(cleanEmail, resetUrl);
-            
+
             setSuccessMessage('パスワードリセットのメールを送信しました。メールボックスをご確認ください。');
             setMode('success');
         } catch (err: any) {
             console.error('Password reset request error:', err);
-            
+
             if (err?.code === 404) {
                 // Don't reveal if email exists or not for security
                 setSuccessMessage('入力されたメールアドレスが登録されている場合、パスワードリセットのメールを送信しました。');
@@ -106,7 +108,7 @@ export function PasswordResetPage() {
             setMode('success');
         } catch (err: any) {
             console.error('Password reset error:', err);
-            
+
             if (err?.code === 401) {
                 setError('リセットリンクの有効期限が切れているか、無効です。もう一度パスワードリセットをリクエストしてください。');
             } else if (err?.type === 'password_recently_used') {
@@ -168,7 +170,7 @@ export function PasswordResetPage() {
                             <p className="text-sm text-slate-500 mb-6">
                                 登録したメールアドレスを入力してください。パスワードリセット用のリンクをお送りします。
                             </p>
-                            
+
                             <form onSubmit={handleRequestReset} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">メールアドレス</label>
@@ -206,21 +208,28 @@ export function PasswordResetPage() {
                             <p className="text-sm text-slate-500 mb-6">
                                 新しいパスワードを入力してください（8文字以上）
                             </p>
-                            
+
                             <form onSubmit={handleResetPassword} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">新しいパスワード</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             minLength={8}
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             placeholder="8文字以上"
-                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+                                            className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
                                     </div>
                                 </div>
 
@@ -229,14 +238,21 @@ export function PasswordResetPage() {
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
-                                            type="password"
+                                            type={showConfirmPassword ? "text" : "password"}
                                             required
                                             minLength={8}
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
                                             placeholder="もう一度入力"
-                                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
+                                            className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
                                     </div>
                                 </div>
 
