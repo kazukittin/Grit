@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 // Lazy load less frequently accessed pages
 const StatsPage = lazy(() => import('./pages/StatsPage').then(m => ({ default: m.StatsPage })));
-const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then(m => ({ default: m.AchievementsPage })));
+
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -110,16 +110,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/achievements"
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingFallback />}>
-              <AchievementsPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

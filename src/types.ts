@@ -146,46 +146,7 @@ export const MEAL_TYPES: { type: MealType; label: string; icon: 'sunrise' | 'sun
     { type: 'snack', label: '間食', icon: 'cookie' },
 ];
 
-// ============ Achievements / Milestones ============
 
-export interface Achievement {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    category: 'streak' | 'weight' | 'habit' | 'workout' | 'meal';
-    condition: (stats: AchievementStats) => boolean;
-    unlockedAt?: string; // ISO date
-}
-
-export interface AchievementStats {
-    totalDaysRecorded: number;
-    currentStreak: number;
-    longestStreak: number;
-    totalWeightLoss: number;
-    totalHabitsCompleted: number;
-    totalWorkouts: number;
-    totalMeals: number;
-    currentWeight: number | null;
-    targetWeight: number | null;
-    startWeight: number | null;
-}
-
-export interface UserAchievement {
-    achievementId: string;
-    unlockedAt: string;
-}
-
-
-
-// ============ User Stats (stored in Appwrite) ============
-
-// User statistics for achievements tracking (replaces localStorage counters)
-export interface UserStatsDoc extends Models.Document {
-    user_id: string;
-    total_habits_completed: number;  // 累計習慣完了数
-    total_meals_logged: number;      // 累計食事記録数
-}
 
 // ============ Statistics ============
 

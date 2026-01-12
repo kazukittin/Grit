@@ -15,8 +15,7 @@ import { MealDashboard } from '../components/MealDashboard';
 import { MealModal } from '../components/MealModal';
 import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
 
-import { AchievementManager } from '../components/Achievements';
-import { getUnlockedAchievements } from '../lib/achievements';
+
 import { InitialSetupWizard, useInitialSetup } from '../components/InitialSetupWizard';
 import {
     SkeletonSummaryCard,
@@ -25,7 +24,7 @@ import {
     SkeletonHeatmap,
     SkeletonMeals,
 } from '../components/Skeleton';
-import { Plus, BarChart3, Trophy } from 'lucide-react';
+import { Plus, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getOrCreateProfile,
@@ -47,9 +46,6 @@ import {
     updateMealLog,
     deleteMealLog,
 
-    getAchievementStats,
-    incrementHabitCompletions,
-    incrementMealCount,
     updateProfile,
     getFavoriteMeals,
     getMealPresets,
@@ -59,7 +55,7 @@ import {
     incrementFavoriteMealUseCount,
     incrementMealPresetUseCount,
 } from '../services/api';
-import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, AchievementStats, FavoriteMeal, MealPreset } from '../types';
+import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, FavoriteMeal, MealPreset } from '../types';
 import type { SetupData } from '../components/InitialSetupWizard';
 import { getTodayString } from '../lib/dateUtils';
 
@@ -98,14 +94,7 @@ export function DashboardPage() {
     const [mealPresets, setMealPresets] = useState<MealPreset[]>([]);
     const [isFavoriteSelectorOpen, setIsFavoriteSelectorOpen] = useState(false);
 
-    // Achievement state
-    const [achievementStats, setAchievementStats] = useState<AchievementStats | null>(null);
-    const [previousUnlockedIds, setPreviousUnlockedIds] = useState<string[]>(() => {
-        // Initialize from localStorage to persist across page loads
-        const stored = localStorage.getItem('grit_unlocked_achievements');
-        return stored ? JSON.parse(stored) : [];
-    });
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
+
 
     // 日付をステートとして管理し、日付が変わったら自動更新
     const [today, setToday] = useState(() => getTodayString());
@@ -187,7 +176,6 @@ export function DashboardPage() {
                 routine,
                 workoutLog,
                 workoutHistory,
-                stats,
                 favorites,
                 presets,
             ] = await Promise.all([
@@ -200,7 +188,6 @@ export function DashboardPage() {
                 getWorkoutRoutineForDay(user.$id, dayOfWeek),
                 getWorkoutLogForDate(user.$id, today),
                 getWorkoutLogs(user.$id, 5),
-                getAchievementStats(user.$id),
                 getFavoriteMeals(user.$id),
                 getMealPresets(user.$id),
             ]);
@@ -232,20 +219,10 @@ export function DashboardPage() {
             setTodayWorkoutLog(workoutLog);
             setRecentWorkouts(workoutHistory);
             // Note: Meals are handled by separate effect
-            setAchievementStats(stats);
             setFavoriteMeals(favorites);
             setMealPresets(presets);
 
-            // On initial load, set all currently unlocked achievements as "previous"
-            if (isInitialLoad) {
-                const currentlyUnlocked = getUnlockedAchievements(stats);
-                const currentIds = currentlyUnlocked.map(a => a.id);
-                const storedIds = JSON.parse(localStorage.getItem('grit_unlocked_achievements') || '[]');
-                const mergedIds = [...new Set([...storedIds, ...currentIds])];
-                setPreviousUnlockedIds(mergedIds);
-                localStorage.setItem('grit_unlocked_achievements', JSON.stringify(mergedIds));
-                setIsInitialLoad(false);
-            }
+
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -273,8 +250,6 @@ export function DashboardPage() {
                     h.habit.$id === habitId ? { ...h, completed: !completed } : h
                 )
             );
-        } else if (completed) {
-            await incrementHabitCompletions(user.$id);
         }
     }, [user, today]);
 
@@ -317,7 +292,6 @@ export function DashboardPage() {
         const newMeal = await addMealLog(user.$id, mealType, foodName, calories, protein, fat, carbs, mealDate);
         if (newMeal) {
             setDisplayedMeals(prev => [...prev, newMeal]);
-            await incrementMealCount(user.$id);
         }
         setIsMealModalOpen(false);
     }, [user, mealDate]); // Use mealDate for saving
@@ -482,7 +456,6 @@ export function DashboardPage() {
                                 await incrementFavoriteMealUseCount(meal.$id);
                                 const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
                                 setDisplayedMeals(updatedMeals);
-                                await incrementMealCount(user.$id);
                             }}
                             onOpenFavorites={() => setIsFavoriteSelectorOpen(true)}
                             onOpenManualEntry={(mealType) => {
@@ -505,13 +478,6 @@ export function DashboardPage() {
                             >
                                 <BarChart3 className="w-5 h-5 text-blue-500" />
                                 <span className="text-sm font-medium text-grit-text">詳細統計</span>
-                            </button>
-                            <button
-                                onClick={() => navigate('/achievements')}
-                                className="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
-                            >
-                                <Trophy className="w-5 h-5 text-yellow-500" />
-                                <span className="text-sm font-medium text-grit-text">実績</span>
                             </button>
                         </div>
                     </div>
@@ -567,7 +533,6 @@ export function DashboardPage() {
                     await incrementFavoriteMealUseCount(meal.$id);
                     const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
                     setDisplayedMeals(updatedMeals);
-                    await incrementMealCount(user.$id);
                 }}
                 onSelectPreset={async (preset, mealType) => {
                     if (!user) return;
@@ -579,7 +544,6 @@ export function DashboardPage() {
                         await incrementMealPresetUseCount(preset.$id);
                         const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
                         setDisplayedMeals(updatedMeals);
-                        await incrementMealCount(user.$id);
                     } catch (e) {
                         console.error('Error parsing preset items:', e);
                     }
@@ -599,19 +563,7 @@ export function DashboardPage() {
                 initialMealType={selectedMealType}
             />
 
-            {achievementStats && (
-                <AchievementManager
-                    stats={achievementStats}
-                    previousUnlockedIds={previousUnlockedIds}
-                    onAchievementUnlocked={(achievement) => {
-                        setPreviousUnlockedIds(prev => {
-                            const updated = [...prev, achievement.id];
-                            localStorage.setItem('grit_unlocked_achievements', JSON.stringify(updated));
-                            return updated;
-                        });
-                    }}
-                />
-            )}
+
 
             <InitialSetupWizard
                 isOpen={showSetup}

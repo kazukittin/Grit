@@ -1,6 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, DATABASE_ID, COLLECTIONS } from '../lib/appwrite';
-import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem, UserStatsDoc } from '../types';
+import type { Profile, WeightLog, Habit, HabitLog, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, FavoriteMeal, MealPreset, MealPresetItem } from '../types';
 import { getTodayString, getLocalDateString } from '../lib/dateUtils';
 
 // Type helper for Appwrite documents
@@ -820,12 +820,7 @@ export async function deleteMealLog(logId: string): Promise<boolean> {
     }
 }
 
-import type { AchievementStats, ExportData } from '../types';
-
-// Type helper for user stats
-function asUserStatsDoc(doc: unknown): UserStatsDoc {
-    return doc as UserStatsDoc;
-}
+import type { ExportData } from '../types';
 
 
 // ============ Statistics API ============
@@ -889,137 +884,9 @@ export async function getStreakData(userId: string): Promise<{ currentStreak: nu
     }
 }
 
-export async function getAchievementStats(userId: string): Promise<AchievementStats> {
-    try {
-        const [weightLogs, streakData, workoutLogs, userStats] = await Promise.all([
-            getWeightLogs(userId, 1000),
-            getStreakData(userId),
-            getWorkoutLogs(userId, 1000),
-            getUserStats(userId),
-        ]);
 
-        const totalHabitsCompleted = userStats?.total_habits_completed || 0;
-        const totalMeals = userStats?.total_meals_logged || 0;
 
-        // Calculate weight stats
-        const sortedWeights = [...weightLogs].sort((a, b) => a.date.localeCompare(b.date));
-        const startWeight = sortedWeights[0]?.weight || null;
-        const currentWeight = sortedWeights[sortedWeights.length - 1]?.weight || null;
-        const totalWeightLoss = startWeight && currentWeight ? startWeight - currentWeight : 0;
 
-        // Get profile for target weight
-        const profile = await getProfile(userId);
-
-        return {
-            totalDaysRecorded: weightLogs.length,
-            currentStreak: streakData.currentStreak,
-            longestStreak: streakData.longestStreak,
-            totalWeightLoss: Math.max(0, totalWeightLoss),
-            totalHabitsCompleted,
-            totalWorkouts: workoutLogs.length,
-            totalMeals,
-            currentWeight,
-            targetWeight: profile?.target_weight || null,
-            startWeight,
-        };
-    } catch (error) {
-        console.error('Error getting achievement stats:', error);
-        return {
-            totalDaysRecorded: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            totalWeightLoss: 0,
-            totalHabitsCompleted: 0,
-            totalWorkouts: 0,
-            totalMeals: 0,
-            currentWeight: null,
-            targetWeight: null,
-            startWeight: null,
-        };
-    }
-}
-
-// ============ User Stats API (Server-side storage) ============
-
-async function getUserStats(userId: string): Promise<UserStatsDoc | null> {
-    try {
-        const response = await databases.listDocuments(
-            DATABASE_ID,
-            COLLECTIONS.USER_STATS,
-            [
-                Query.equal('user_id', userId),
-                Query.limit(1),
-            ]
-        );
-
-        if (response.documents.length > 0) {
-            return asUserStatsDoc(response.documents[0]);
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching user stats:', error);
-        return null;
-    }
-}
-
-async function getOrCreateUserStats(userId: string): Promise<UserStatsDoc | null> {
-    try {
-        const existing = await getUserStats(userId);
-        if (existing) {
-            return existing;
-        }
-
-        // Create new user stats document
-        const created = await databases.createDocument(
-            DATABASE_ID,
-            COLLECTIONS.USER_STATS,
-            ID.unique(),
-            {
-                user_id: userId,
-                total_habits_completed: 0,
-                total_meals_logged: 0,
-            }
-        );
-        return asUserStatsDoc(created);
-    } catch (error) {
-        console.error('Error getting or creating user stats:', error);
-        return null;
-    }
-}
-
-// Track habit completions for achievements (now stored in Appwrite)
-export async function incrementHabitCompletions(userId: string, count: number = 1): Promise<void> {
-    try {
-        const stats = await getOrCreateUserStats(userId);
-        if (stats) {
-            await databases.updateDocument(
-                DATABASE_ID,
-                COLLECTIONS.USER_STATS,
-                stats.$id,
-                { total_habits_completed: stats.total_habits_completed + count }
-            );
-        }
-    } catch (error) {
-        console.error('Error incrementing habit completions:', error);
-    }
-}
-
-// Track meal count for achievements (now stored in Appwrite)
-export async function incrementMealCount(userId: string, count: number = 1): Promise<void> {
-    try {
-        const stats = await getOrCreateUserStats(userId);
-        if (stats) {
-            await databases.updateDocument(
-                DATABASE_ID,
-                COLLECTIONS.USER_STATS,
-                stats.$id,
-                { total_meals_logged: stats.total_meals_logged + count }
-            );
-        }
-    } catch (error) {
-        console.error('Error incrementing meal count:', error);
-    }
-}
 
 // ============ Data Export/Import API ============
 
@@ -1130,7 +997,7 @@ export async function deleteAllUserData(userId: string): Promise<{
             { name: 'meal_logs', id: COLLECTIONS.MEAL_LOGS },
             { name: 'favorite_meals', id: COLLECTIONS.FAVORITE_MEALS },
             { name: 'meal_presets', id: COLLECTIONS.MEAL_PRESETS },
-            { name: 'user_stats', id: COLLECTIONS.USER_STATS },
+
         ];
 
         for (const collection of collections) {
