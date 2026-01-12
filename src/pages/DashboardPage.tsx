@@ -86,8 +86,9 @@ export function DashboardPage() {
     const [recentWorkouts, setRecentWorkouts] = useState<WorkoutLog[]>([]);
     const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
 
-    // Meal state
-    const [todayMeals, setTodayMeals] = useState<MealLog[]>([]);
+    // Meal state (Date Navigation)
+    const [mealDate, setMealDate] = useState(() => getTodayString()); // 食事記録用の日付
+    const [displayedMeals, setDisplayedMeals] = useState<MealLog[]>([]); // 表示中の日の食事
     const [isMealModalOpen, setIsMealModalOpen] = useState(false);
     const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
     const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
@@ -96,8 +97,6 @@ export function DashboardPage() {
     const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
     const [mealPresets, setMealPresets] = useState<MealPreset[]>([]);
     const [isFavoriteSelectorOpen, setIsFavoriteSelectorOpen] = useState(false);
-
-
 
     // Achievement state
     const [achievementStats, setAchievementStats] = useState<AchievementStats | null>(null);
@@ -120,14 +119,12 @@ export function DashboardPage() {
             }
         };
 
-        // ページがフォーカスされたときにチェック
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 checkDateChange();
             }
         };
 
-        // ウィンドウにフォーカスが戻ったときにチェック
         const handleFocus = () => {
             checkDateChange();
         };
@@ -135,7 +132,6 @@ export function DashboardPage() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('focus', handleFocus);
 
-        // 1分ごとにも日付をチェック（深夜0時を跨ぐケース対応）
         const intervalId = setInterval(checkDateChange, 60000);
 
         return () => {
@@ -144,6 +140,20 @@ export function DashboardPage() {
             clearInterval(intervalId);
         };
     }, [today]);
+
+    // Independent meal loading when date changes
+    useEffect(() => {
+        const loadMeals = async () => {
+            if (!user) return;
+            try {
+                const meals = await getMealLogsForDate(user.$id, mealDate);
+                setDisplayedMeals(meals);
+            } catch (error) {
+                console.error('Error loading meals:', error);
+            }
+        };
+        loadMeals();
+    }, [user, mealDate]); // Re-run when user or selected date changes
 
     const loadData = useCallback(async () => {
         if (!user) return;
@@ -177,7 +187,6 @@ export function DashboardPage() {
                 routine,
                 workoutLog,
                 workoutHistory,
-                mealLogs,
                 stats,
                 favorites,
                 presets,
@@ -191,7 +200,6 @@ export function DashboardPage() {
                 getWorkoutRoutineForDay(user.$id, dayOfWeek),
                 getWorkoutLogForDate(user.$id, today),
                 getWorkoutLogs(user.$id, 5),
-                getMealLogsForDate(user.$id, today),
                 getAchievementStats(user.$id),
                 getFavoriteMeals(user.$id),
                 getMealPresets(user.$id),
@@ -223,17 +231,15 @@ export function DashboardPage() {
             setTodayRoutine(routine);
             setTodayWorkoutLog(workoutLog);
             setRecentWorkouts(workoutHistory);
-            setTodayMeals(mealLogs);
+            // Note: Meals are handled by separate effect
             setAchievementStats(stats);
             setFavoriteMeals(favorites);
             setMealPresets(presets);
 
             // On initial load, set all currently unlocked achievements as "previous"
-            // to prevent showing unlock notifications for already-unlocked achievements
             if (isInitialLoad) {
                 const currentlyUnlocked = getUnlockedAchievements(stats);
                 const currentIds = currentlyUnlocked.map(a => a.id);
-                // Merge with stored IDs to handle any new achievements unlocked while offline
                 const storedIds = JSON.parse(localStorage.getItem('grit_unlocked_achievements') || '[]');
                 const mergedIds = [...new Set([...storedIds, ...currentIds])];
                 setPreviousUnlockedIds(mergedIds);
@@ -254,7 +260,6 @@ export function DashboardPage() {
     const handleToggleHabit = useCallback(async (habitId: string, completed: boolean) => {
         if (!user) return;
 
-        // Optimistic update
         setDailyHabits(prev =>
             prev.map(h =>
                 h.habit.$id === habitId ? { ...h, completed } : h
@@ -263,14 +268,12 @@ export function DashboardPage() {
 
         const success = await toggleHabitLog(user.$id, habitId, today, completed);
         if (!success) {
-            // Revert on failure
             setDailyHabits(prev =>
                 prev.map(h =>
                     h.habit.$id === habitId ? { ...h, completed: !completed } : h
                 )
             );
         } else if (completed) {
-            // Track for achievements
             await incrementHabitCompletions(user.$id);
         }
     }, [user, today]);
@@ -311,19 +314,18 @@ export function DashboardPage() {
     const handleSaveMeal = useCallback(async (foodName: string, calories: number, mealType: MealType, protein?: number, fat?: number, carbs?: number) => {
         if (!user) return;
 
-        const newMeal = await addMealLog(user.$id, mealType, foodName, calories, protein, fat, carbs, today);
+        const newMeal = await addMealLog(user.$id, mealType, foodName, calories, protein, fat, carbs, mealDate);
         if (newMeal) {
-            setTodayMeals(prev => [...prev, newMeal]);
-            // Track for achievements
+            setDisplayedMeals(prev => [...prev, newMeal]);
             await incrementMealCount(user.$id);
         }
         setIsMealModalOpen(false);
-    }, [user, today]);
+    }, [user, mealDate]); // Use mealDate for saving
 
     const handleUpdateMeal = useCallback(async (logId: string, foodName: string, calories: number, protein?: number, fat?: number, carbs?: number) => {
         const updated = await updateMealLog(logId, { food_name: foodName, calories, protein, fat, carbs });
         if (updated) {
-            setTodayMeals(prev => prev.map(m => m.$id === logId ? updated : m));
+            setDisplayedMeals(prev => prev.map(m => m.$id === logId ? updated : m));
         }
         setIsMealModalOpen(false);
         setEditingMeal(null);
@@ -332,15 +334,13 @@ export function DashboardPage() {
     const handleDeleteMeal = useCallback(async (mealId: string) => {
         const success = await deleteMealLog(mealId);
         if (success) {
-            setTodayMeals(prev => prev.filter(m => m.$id !== mealId));
+            setDisplayedMeals(prev => prev.filter(m => m.$id !== mealId));
         }
     }, []);
 
-    // Handle initial setup completion
     const handleCompleteSetup = useCallback(async (data: SetupData) => {
         if (!profile || !user) return;
 
-        // Update profile with height and targets
         await updateProfile(profile.$id, {
             height: data.height,
             target_weight: data.targetWeight,
@@ -350,7 +350,6 @@ export function DashboardPage() {
             target_carbs: data.targetCarbs,
         });
 
-        // Update local profile state
         setProfile({
             ...profile,
             height: data.height,
@@ -361,7 +360,6 @@ export function DashboardPage() {
             target_carbs: data.targetCarbs,
         });
 
-        // If current weight was entered, add it as the first weight log
         if (data.currentWeight) {
             const weightLog = await addWeightLog(user.$id, data.currentWeight, undefined);
             if (weightLog) {
@@ -372,9 +370,9 @@ export function DashboardPage() {
         completeSetup();
     }, [profile, user, completeSetup]);
 
-    // Calculate PFC summary from today's meals
+    // Calculate PFC summary from displayed meals
     const pfcSummary: PFCSummary = useMemo(() => {
-        return todayMeals.reduce(
+        return displayedMeals.reduce(
             (acc, meal) => ({
                 calories: acc.calories + (meal.calories || 0),
                 protein: acc.protein + (meal.protein || 0),
@@ -383,9 +381,8 @@ export function DashboardPage() {
             }),
             { calories: 0, protein: 0, fat: 0, carbs: 0 }
         );
-    }, [todayMeals]);
+    }, [displayedMeals]);
 
-    // Target PFC from profile
     const targetPFC = useMemo(() => {
         if (!profile?.target_calories) return null;
         return {
@@ -426,7 +423,6 @@ export function DashboardPage() {
             <Header level={level} />
 
             <main className="max-w-5xl mx-auto px-4 py-6">
-                {/* PC用: 「＋ 今日の記録」ボタン */}
                 <div className="hidden md:flex justify-end mb-6">
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -437,9 +433,7 @@ export function DashboardPage() {
                     </button>
                 </div>
 
-                {/* レスポンシブグリッド: スマホは縦一列、PCは2カラム */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    {/* 左側 (PCで3カラム = 60%) */}
                     <div className="md:col-span-3 space-y-6">
                         <SummaryCard
                             latestWeight={latestLog?.weight ?? null}
@@ -460,7 +454,6 @@ export function DashboardPage() {
                         <ContributionHeatmap data={heatmapData} months={3} />
                     </div>
 
-                    {/* 右側 (PCで2カラム = 40%) */}
                     <div className="md:col-span-2 space-y-6">
 
                         <TodayWorkout
@@ -476,7 +469,7 @@ export function DashboardPage() {
                         />
 
                         <MealDashboard
-                            meals={todayMeals}
+                            meals={displayedMeals}
                             favoriteMeals={favoriteMeals}
                             currentPFC={pfcSummary}
                             targetPFC={targetPFC}
@@ -485,10 +478,10 @@ export function DashboardPage() {
                             onDeleteMeal={handleDeleteMeal}
                             onQuickAdd={async (meal, mealType) => {
                                 if (!user) return;
-                                await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs, today);
+                                await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs, mealDate);
                                 await incrementFavoriteMealUseCount(meal.$id);
-                                const updatedMeals = await getMealLogsForDate(user.$id, today);
-                                setTodayMeals(updatedMeals);
+                                const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
+                                setDisplayedMeals(updatedMeals);
                                 await incrementMealCount(user.$id);
                             }}
                             onOpenFavorites={() => setIsFavoriteSelectorOpen(true)}
@@ -497,13 +490,14 @@ export function DashboardPage() {
                                 setEditingMeal(null);
                                 setIsMealModalOpen(true);
                             }}
+                            selectedDate={mealDate}
+                            onDateChange={setMealDate}
+                            isToday={mealDate === today}
+                            todayDate={today}
                         />
-
-
 
                         <RecentWorkouts logs={recentWorkouts} />
 
-                        {/* Quick Navigation */}
                         <div className="flex gap-3">
                             <button
                                 onClick={() => navigate('/stats')}
@@ -552,7 +546,6 @@ export function DashboardPage() {
                     const meal = await addFavoriteMeal(user.$id, foodName, calories, protein, fat, carbs);
                     if (meal) {
                         setFavoriteMeals(prev => {
-                            // Check if already exists
                             const exists = prev.find(m => m.$id === meal.$id);
                             if (exists) return prev.map(m => m.$id === meal.$id ? meal : m);
                             return [meal, ...prev];
@@ -570,10 +563,10 @@ export function DashboardPage() {
                 mealPresets={mealPresets}
                 onSelectFavorite={async (meal, mealType) => {
                     if (!user) return;
-                    await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs);
+                    await addMealLog(user.$id, mealType, meal.name, meal.calories, meal.protein, meal.fat, meal.carbs, mealDate);
                     await incrementFavoriteMealUseCount(meal.$id);
-                    const updatedMeals = await getMealLogsForDate(user.$id, today);
-                    setTodayMeals(updatedMeals);
+                    const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
+                    setDisplayedMeals(updatedMeals);
                     await incrementMealCount(user.$id);
                 }}
                 onSelectPreset={async (preset, mealType) => {
@@ -581,11 +574,11 @@ export function DashboardPage() {
                     try {
                         const items = JSON.parse(preset.items) as { name: string; calories: number; protein?: number | null; fat?: number | null; carbs?: number | null }[];
                         for (const item of items) {
-                            await addMealLog(user.$id, mealType, item.name, item.calories, item.protein, item.fat, item.carbs);
+                            await addMealLog(user.$id, mealType, item.name, item.calories, item.protein, item.fat, item.carbs, mealDate);
                         }
                         await incrementMealPresetUseCount(preset.$id);
-                        const updatedMeals = await getMealLogsForDate(user.$id, today);
-                        setTodayMeals(updatedMeals);
+                        const updatedMeals = await getMealLogsForDate(user.$id, mealDate);
+                        setDisplayedMeals(updatedMeals);
                         await incrementMealCount(user.$id);
                     } catch (e) {
                         console.error('Error parsing preset items:', e);
@@ -606,14 +599,11 @@ export function DashboardPage() {
                 initialMealType={selectedMealType}
             />
 
-
-            {/* Achievement Toast Manager */}
             {achievementStats && (
                 <AchievementManager
                     stats={achievementStats}
                     previousUnlockedIds={previousUnlockedIds}
                     onAchievementUnlocked={(achievement) => {
-                        // Add to previously unlocked to avoid showing again
                         setPreviousUnlockedIds(prev => {
                             const updated = [...prev, achievement.id];
                             localStorage.setItem('grit_unlocked_achievements', JSON.stringify(updated));
@@ -623,7 +613,6 @@ export function DashboardPage() {
                 />
             )}
 
-            {/* Initial Setup Wizard for new users */}
             <InitialSetupWizard
                 isOpen={showSetup}
                 onComplete={handleCompleteSetup}

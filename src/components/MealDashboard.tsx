@@ -14,6 +14,8 @@ import {
     TrendingUp,
     Clock,
     ChevronRight,
+    ChevronLeft,
+    CalendarDays,
     Sparkles,
     Target,
     Beef,
@@ -43,6 +45,11 @@ interface MealDashboardProps {
     onQuickAdd: (meal: FavoriteMeal, mealType: MealType) => Promise<void>;
     onOpenFavorites?: () => void;
     onOpenManualEntry?: (mealType: MealType) => void;
+    // Date navigation
+    selectedDate: string; // YYYY-MM-DD format
+    onDateChange: (date: string) => void;
+    isToday: boolean;
+    todayDate: string;
 }
 
 // Food icon mapping based on keywords
@@ -361,6 +368,10 @@ export const MealDashboard = ({
     onQuickAdd,
     onOpenFavorites,
     onOpenManualEntry,
+    selectedDate,
+    onDateChange,
+    isToday,
+    todayDate,
 }: MealDashboardProps) => {
     const [activeTab, setActiveTab] = useState<'timeline' | 'nutrition'>('timeline');
     const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
@@ -390,17 +401,83 @@ export const MealDashboard = ({
             .slice(0, 4);
     }, [favoriteMeals]);
 
+    // Date navigation helpers
+    const navigateDate = (direction: 'prev' | 'next') => {
+        const current = new Date(selectedDate);
+        if (direction === 'prev') {
+            current.setDate(current.getDate() - 1);
+        } else {
+            current.setDate(current.getDate() + 1);
+        }
+        onDateChange(current.toISOString().split('T')[0]);
+    };
+
+    const formatDateDisplay = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const targetDate = new Date(date);
+        targetDate.setHours(0, 0, 0, 0);
+
+        if (targetDate.getTime() === today.getTime()) {
+            return '今日';
+        } else if (targetDate.getTime() === yesterday.getTime()) {
+            return '昨日';
+        } else {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+            return `${month}/${day} (${weekday})`;
+        }
+    };
+
     return (
         <div className="bg-grit-surface dark:glass-card rounded-2xl border border-grit-border animate-fade-in backdrop-blur-xl overflow-hidden">
+            {/* Date Navigation */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <button
+                    onClick={() => navigateDate('prev')}
+                    className="p-2 rounded-lg hover:bg-grit-surface-hover text-grit-text-muted hover:text-grit-text transition-colors"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-grit-accent" />
+                    <span className={`text-sm font-semibold ${isToday ? 'text-grit-accent' : 'text-grit-text'}`}>
+                        {formatDateDisplay(selectedDate)}
+                    </span>
+                    {!isToday && (
+                        <button
+                            onClick={() => onDateChange(todayDate)}
+                            className="px-2 py-0.5 text-xs bg-grit-accent/20 text-grit-accent rounded-full hover:bg-grit-accent/30 transition-colors"
+                        >
+                            今日へ
+                        </button>
+                    )}
+                </div>
+                <button
+                    onClick={() => navigateDate('next')}
+                    disabled={isToday}
+                    className={`p-2 rounded-lg transition-colors ${isToday
+                        ? 'text-grit-text-dim cursor-not-allowed'
+                        : 'hover:bg-grit-surface-hover text-grit-text-muted hover:text-grit-text'
+                        }`}
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+            </div>
+
             {/* Header with Nutrition Overview */}
-            <div className="p-5 bg-gradient-to-br from-grit-accent/10 to-purple-500/5 border-b border-grit-border">
+            <div className="p-5 pt-2 bg-gradient-to-br from-grit-accent/10 to-purple-500/5 border-b border-grit-border">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded-xl bg-grit-accent/20 flex items-center justify-center">
                             <Utensils className="w-5 h-5 text-grit-accent" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-grit-text">今日の食事</h2>
+                            <h2 className="text-lg font-bold text-grit-text">{isToday ? '今日の食事' : '食事記録'}</h2>
                             <p className="text-xs text-grit-text-muted">{meals.length}品目記録済み</p>
                         </div>
                     </div>
@@ -601,8 +678,8 @@ export const MealDashboard = ({
                                 </div>
                                 {targetPFC && (
                                     <div className={`px-3 py-1.5 rounded-lg ${remainingCalories >= 0
-                                            ? 'bg-emerald-500/20 text-emerald-400'
-                                            : 'bg-red-500/20 text-red-400'
+                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        : 'bg-red-500/20 text-red-400'
                                         }`}>
                                         <span className="text-sm font-bold">
                                             {remainingCalories >= 0 ? '−' : '+'}{Math.abs(remainingCalories).toLocaleString()}
