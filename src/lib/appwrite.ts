@@ -28,5 +28,6 @@ export const COLLECTIONS = {
     MEAL_PRESETS: 'meal_presets',
 
     USER_STATS: import.meta.env.VITE_APPWRITE_COLLECTION_USER_STATS || 'user_stats',
+    PUSH_SUBSCRIPTIONS: import.meta.env.VITE_APPWRITE_COLLECTION_PUSH_SUBSCRIPTIONS || 'push_subscriptions',
 };
 

@@ -1,0 +1,14 @@
+{
+    "name": "send-push-notifications",
+    "version": "1.0.0",
+    "description": "Appwrite Function to send scheduled push notifications",
+    "main": "src/main.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "node-appwrite": "^14.0.0",
+        "web-push": "^3.6.7"
+    }
+}

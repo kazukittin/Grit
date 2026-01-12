@@ -231,3 +231,14 @@ export interface ExportData {
 
 }
 
+// ============ Push Notifications ============
+
+export interface PushSubscriptionDoc extends Models.Document {
+    user_id: string;
+    endpoint: string;              // Push endpoint URL
+    keys_p256dh: string;           // P256DH key
+    keys_auth: string;             // Auth key
+    notification_enabled: boolean; // 通知ON/OFF
+    notification_time: string;     // 通知時刻 (HH:MM format, e.g., "20:00")
+    timezone: string;              // Timezone (e.g., "Asia/Tokyo")
+}

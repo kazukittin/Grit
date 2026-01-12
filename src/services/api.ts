@@ -1422,3 +1422,116 @@ export async function incrementMealPresetUseCount(presetId: string): Promise<boo
     }
 }
 
+// ============ Push Subscriptions API ============
+
+import type { PushSubscriptionDoc } from '../types';
+
+function asPushSubscriptionDoc(doc: unknown): PushSubscriptionDoc {
+    return doc as PushSubscriptionDoc;
+}
+
+export async function getPushSubscription(userId: string): Promise<PushSubscriptionDoc | null> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.PUSH_SUBSCRIPTIONS,
+            [Query.equal('user_id', userId), Query.limit(1)]
+        );
+
+        if (response.documents.length > 0) {
+            return asPushSubscriptionDoc(response.documents[0]);
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching push subscription:', error);
+        return null;
+    }
+}
+
+export async function savePushSubscription(
+    userId: string,
+    subscription: {
+        endpoint: string;
+        keys: {
+            p256dh: string;
+            auth: string;
+        };
+    },
+    notificationTime: string,
+    timezone: string = 'Asia/Tokyo'
+): Promise<PushSubscriptionDoc | null> {
+    try {
+        // Check if subscription exists
+        const existing = await getPushSubscription(userId);
+
+        const data = {
+            user_id: userId,
+            endpoint: subscription.endpoint,
+            keys_p256dh: subscription.keys.p256dh,
+            keys_auth: subscription.keys.auth,
+            notification_enabled: true,
+            notification_time: notificationTime,
+            timezone: timezone,
+        };
+
+        if (existing) {
+            // Update existing
+            const updated = await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTIONS.PUSH_SUBSCRIPTIONS,
+                existing.$id,
+                data
+            );
+            return asPushSubscriptionDoc(updated);
+        } else {
+            // Create new
+            const created = await databases.createDocument(
+                DATABASE_ID,
+                COLLECTIONS.PUSH_SUBSCRIPTIONS,
+                ID.unique(),
+                data
+            );
+            return asPushSubscriptionDoc(created);
+        }
+    } catch (error) {
+        console.error('Error saving push subscription:', error);
+        return null;
+    }
+}
+
+export async function updatePushSubscriptionSettings(
+    subscriptionId: string,
+    settings: {
+        notification_enabled?: boolean;
+        notification_time?: string;
+        timezone?: string;
+    }
+): Promise<boolean> {
+    try {
+        await databases.updateDocument(
+            DATABASE_ID,
+            COLLECTIONS.PUSH_SUBSCRIPTIONS,
+            subscriptionId,
+            settings
+        );
+        return true;
+    } catch (error) {
+        console.error('Error updating push subscription settings:', error);
+        return false;
+    }
+}
+
+export async function deletePushSubscription(subscriptionId: string): Promise<boolean> {
+    try {
+        await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.PUSH_SUBSCRIPTIONS,
+            subscriptionId
+        );
+        return true;
+    } catch (error) {
+        console.error('Error deleting push subscription:', error);
+        return false;
+    }
+}
+

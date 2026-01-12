@@ -86,12 +86,53 @@
 - **habits**: `user_id` (key)
 - **habit_logs**: `user_id` + `habit_id` + `date` (key, unique)
 - **meal_logs**: `user_id` + `date` (key)
+- **push_subscriptions**: `user_id` (key, unique)
+
+#### push_subscriptions（プッシュ通知設定）
+| Attribute | Type | Required |
+|-----------|------|----------|
+| user_id | String (36) | Yes |
+| endpoint | String (500) | Yes |
+| keys_p256dh | String (255) | Yes |
+| keys_auth | String (255) | Yes |
+| notification_enabled | Boolean | Yes (default: true) |
+| notification_time | String (5) | Yes |
+| timezone | String (50) | Yes |
 
 ### 4. パーミッションの設定
 
 各Collectionのパーミッションを以下のように設定：
 - **Any Role**: なし
 - **Users Role**: Create, Read, Update, Delete
+
+### 5. プッシュ通知の設定（オプション）
+
+毎日のリマインダー通知機能を使用する場合：
+
+#### 5.1 VAPID キーの生成
+
+```bash
+npm install
+node scripts/generate-vapid-keys.js
+```
+
+生成されたキーを `.env` ファイルに追加してください。
+
+#### 5.2 Appwrite Functions のデプロイ
+
+1. Appwrite Console で新しい Function を作成
+2. `functions/send-push-notifications` ディレクトリの内容をアップロード
+3. 以下の環境変数を設定：
+   - `APPWRITE_ENDPOINT`: Appwrite エンドポイント
+   - `APPWRITE_PROJECT_ID`: プロジェクトID
+   - `APPWRITE_API_KEY`: API キー（Database権限必要）
+   - `DATABASE_ID`: データベースID
+   - `COLLECTION_PUSH_SUBSCRIPTIONS`: push_subscriptions コレクションID
+   - `VAPID_PUBLIC_KEY`: 生成した公開キー
+   - `VAPID_PRIVATE_KEY`: 生成した秘密キー
+   - `VAPID_SUBJECT`: mailto:your-email@example.com
+
+4. スケジュールを設定（毎分実行）: `* * * * *`
 
 ### 5. 環境変数の設定
 

@@ -206,6 +206,24 @@ const collections = [
             { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
         ],
     },
+    {
+        id: 'push_subscriptions',
+        name: 'Push Subscriptions',
+        attributes: [
+            { type: 'string', key: 'user_id', size: 36, required: true },
+            { type: 'string', key: 'endpoint', size: 500, required: true },
+            { type: 'string', key: 'keys_p256dh', size: 255, required: true },
+            { type: 'string', key: 'keys_auth', size: 255, required: true },
+            { type: 'boolean', key: 'notification_enabled', required: true, default: true },
+            { type: 'string', key: 'notification_time', size: 5, required: true }, // HH:MM format
+            { type: 'string', key: 'timezone', size: 50, required: true },
+        ],
+        indexes: [
+            { key: 'user_id_idx', type: 'key', attributes: ['user_id'] },
+            { key: 'notification_time_idx', type: 'key', attributes: ['notification_time'] },
+            { key: 'enabled_time_idx', type: 'key', attributes: ['notification_enabled', 'notification_time'] },
+        ],
+    },
 ];
 
 // ============ Helper Functions ============

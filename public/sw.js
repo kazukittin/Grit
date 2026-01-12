@@ -89,30 +89,91 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Handle push notifications (future feature)
+// Handle push notifications
 self.addEventListener('push', (event) => {
+    console.log('[SW] Push notification received');
+
+    let data = {
+        title: 'Grit',
+        body: '今日の記録をつけましょう！',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/badge-72.png',
+        tag: 'grit-reminder',
+        url: '/',
+    };
+
+    // プッシュデータがある場合はパース
     if (event.data) {
-        const data = event.data.json();
-        const options = {
-            body: data.body || 'Gritからの通知です',
-            icon: '/icons/icon-192x192.png',
-            badge: '/icons/icon-72x72.png',
-            vibrate: [100, 50, 100],
-            data: {
-                dateOfArrival: Date.now(),
-                primaryKey: 1
-            }
-        };
-        event.waitUntil(
-            self.registration.showNotification(data.title || 'Grit', options)
-        );
+        try {
+            const pushData = event.data.json();
+            data = { ...data, ...pushData };
+        } catch (e) {
+            // テキストデータの場合
+            data.body = event.data.text() || data.body;
+        }
     }
+
+    const options = {
+        body: data.body,
+        icon: data.icon || '/icons/icon-192.png',
+        badge: data.badge || '/icons/badge-72.png',
+        tag: data.tag || 'grit-notification',
+        vibrate: [100, 50, 100],
+        data: {
+            url: data.url || '/',
+            dateOfArrival: Date.now(),
+        },
+        actions: [
+            {
+                action: 'open',
+                title: '記録する',
+            },
+            {
+                action: 'dismiss',
+                title: '後で',
+            }
+        ],
+        requireInteraction: false,
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] Notification clicked:', event.action);
+
     event.notification.close();
+
+    // "後で" ボタンの場合は何もしない
+    if (event.action === 'dismiss') {
+        return;
+    }
+
+    // アプリを開く
+    const urlToOpen = event.notification.data?.url || '/';
+
     event.waitUntil(
-        clients.openWindow('/')
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((windowClients) => {
+                // すでに開いているウィンドウがあればフォーカス
+                for (const client of windowClients) {
+                    if (client.url.includes(self.location.origin) && 'focus' in client) {
+                        client.navigate(urlToOpen);
+                        return client.focus();
+                    }
+                }
+                // なければ新しいウィンドウを開く
+                if (clients.openWindow) {
+                    return clients.openWindow(urlToOpen);
+                }
+            })
     );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', (event) => {
+    console.log('[SW] Notification closed');
 });

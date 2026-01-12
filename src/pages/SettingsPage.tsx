@@ -4,6 +4,7 @@ import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2
 import { useAuth } from '../contexts/AuthContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
+import { NotificationSettings } from '../components/NotificationSettings';
 import { useInitialSetup } from '../components/InitialSetupWizard';
 import {
     getOrCreateProfile,
@@ -851,6 +852,9 @@ export function SettingsPage() {
                         onImport={(data) => importData(user.$id, data)}
                     />
                 )}
+
+                {/* Notification Settings */}
+                <NotificationSettings />
 
                 {/* Reset Buttons */}
                 <div className="space-y-3">
