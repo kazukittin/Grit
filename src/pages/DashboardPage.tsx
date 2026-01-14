@@ -434,7 +434,6 @@ export function DashboardPage() {
                             routine={todayRoutine}
                             todayLog={todayWorkoutLog}
                             onComplete={handleSaveWorkout}
-                            onEdit={() => setIsWorkoutModalOpen(true)}
                         />
 
                         <DailyHabits

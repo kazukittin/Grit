@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Dumbbell, Play, Edit3, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer, Check } from 'lucide-react';
+import { Dumbbell, Play, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { WorkoutRoutine, WorkoutLog, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
@@ -8,7 +8,6 @@ interface TodayWorkoutProps {
     routine: WorkoutRoutine | null;
     todayLog: WorkoutLog | null;
     onComplete: (title: string, description: string, durationMin: number) => Promise<void>;
-    onEdit: () => void;
 }
 
 function parseExercises(description: string): ExerciseItem[] {
@@ -27,7 +26,7 @@ function parseExercises(description: string): ExerciseItem[] {
     return [];
 }
 
-export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWorkoutProps) => {
+export const TodayWorkout = ({ routine, todayLog, onComplete }: TodayWorkoutProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
 
@@ -241,35 +240,26 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                     )}
                 </div>
 
-                <div className="flex gap-3">
-                    <button
-                        onClick={handleQuickComplete}
-                        disabled={isSubmitting}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-semibold rounded-xl shadow-lg transition-all ${allCompleted
-                            ? 'bg-gradient-to-br from-grit-positive to-green-600 text-white shadow-grit-positive/30 hover:scale-[1.02] active:scale-[0.98]'
-                            : 'bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98]'
-                            } disabled:opacity-50`}
-                    >
-                        {allCompleted ? (
-                            <>
-                                <CheckCircle className="w-5 h-5" />
-                                ワークアウト完了！記録する
-                            </>
-                        ) : (
-                            <>
-                                <Play className="w-5 h-5" />
-                                {completedCount > 0 ? `${completedCount}種目完了・記録する` : '完了して記録'}
-                            </>
-                        )}
-                    </button>
-                    <button
-                        onClick={onEdit}
-                        className="px-4 py-3 bg-grit-surface-hover border border-grit-border text-grit-text font-medium rounded-xl hover:bg-grit-border/50 transition-colors flex items-center gap-2"
-                    >
-                        <Edit3 className="w-4 h-4" />
-                        編集
-                    </button>
-                </div>
+                <button
+                    onClick={handleQuickComplete}
+                    disabled={isSubmitting}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold rounded-xl shadow-lg transition-all ${allCompleted
+                        ? 'bg-gradient-to-br from-grit-positive to-green-600 text-white shadow-grit-positive/30 hover:scale-[1.02] active:scale-[0.98]'
+                        : 'bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white shadow-grit-accent/30 hover:scale-[1.02] active:scale-[0.98]'
+                        } disabled:opacity-50`}
+                >
+                    {allCompleted ? (
+                        <>
+                            <CheckCircle className="w-5 h-5" />
+                            ワークアウト完了！記録する
+                        </>
+                    ) : (
+                        <>
+                            <Play className="w-5 h-5" />
+                            {completedCount > 0 ? `${completedCount}種目完了・記録する` : '完了して記録'}
+                        </>
+                    )}
+                </button>
             </div>
         );
     }
@@ -287,16 +277,9 @@ export const TodayWorkout = ({ routine, todayLog, onComplete, onEdit }: TodayWor
                 <p className="text-grit-text-muted mb-4">
                     今日はスケジュールされたワークアウトはありません
                 </p>
-                <p className="text-sm text-grit-text-dim mb-4">
-                    休息日として過ごすか、フリーワークアウトを記録できます
+                <p className="text-sm text-grit-text-dim">
+                    休息日としてゆっくりお過ごしください
                 </p>
-                <button
-                    onClick={onEdit}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-grit-surface-hover border border-grit-border text-grit-text font-medium rounded-xl hover:bg-grit-border/50 transition-colors"
-                >
-                    <Edit3 className="w-4 h-4" />
-                    フリーワークアウトを記録
-                </button>
             </div>
         </div>
     );
