@@ -57,7 +57,7 @@ import {
 } from '../services/api';
 import type { Profile, WeightLog, DailyHabitStatus, HeatmapDay, WorkoutRoutine, WorkoutLog, MealLog, MealType, PFCSummary, FavoriteMeal, MealPreset } from '../types';
 import type { SetupData } from '../components/InitialSetupWizard';
-import { getTodayString } from '../lib/dateUtils';
+import { getTodayString, getEffectiveDayOfWeek } from '../lib/dateUtils';
 
 export function DashboardPage() {
     const { user } = useAuth();
@@ -155,7 +155,7 @@ export function DashboardPage() {
             weekAgo.setDate(weekAgo.getDate() - 6);
             const threeMonthsAgo = new Date();
             threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            const dayOfWeek = new Date().getDay();
+            const dayOfWeek = getEffectiveDayOfWeek();
 
             // Load profile first (needed for setup check)
             const profileData = await getOrCreateProfile(user.$id);

@@ -3,6 +3,7 @@ import { Dumbbell, Play, Coffee, Clock, CheckCircle, Flame, Hash, Layers, Timer,
 import confetti from 'canvas-confetti';
 import type { WorkoutRoutine, WorkoutLog, ExerciseItem } from '../types';
 import { DAY_NAMES } from '../types';
+import { getEffectiveDayOfWeek } from '../lib/dateUtils';
 
 interface TodayWorkoutProps {
     routine: WorkoutRoutine | null;
@@ -30,8 +31,7 @@ export const TodayWorkout = ({ routine, todayLog, onComplete }: TodayWorkoutProp
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
 
-    const today = new Date();
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = getEffectiveDayOfWeek();
     const dayName = DAY_NAMES[dayOfWeek];
 
     const exercises = useMemo(() => {
