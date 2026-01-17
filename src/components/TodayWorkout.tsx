@@ -88,16 +88,16 @@ export const TodayWorkout = ({ routine, todayLog, onComplete }: TodayWorkoutProp
         const logTotalCalories = logExercises.reduce((sum, ex) => sum + (ex.calories * ex.sets), 0);
 
         return (
-            <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border-2 border-grit-positive/50 animate-fade-in backdrop-blur-xl">
-                <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="w-5 h-5 text-grit-positive" />
-                    <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>
-                    <span className="text-sm text-grit-text-muted ml-auto">{dayName}</span>
+            <div className="bg-grit-surface dark:glass-card rounded-2xl p-4 lg:p-6 border-2 border-grit-positive/50 animate-fade-in backdrop-blur-xl">
+                <div className="flex items-center gap-2 mb-3 lg:mb-4">
+                    <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-grit-positive" />
+                    <h2 className="text-base lg:text-lg font-semibold text-grit-text">Today's Workout</h2>
+                    <span className="text-xs lg:text-sm text-grit-text-muted ml-auto">{dayName}</span>
                 </div>
 
-                <div className="bg-grit-positive/10 rounded-xl p-4 border border-grit-positive/30">
-                    <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-grit-text">{todayLog.title}</h3>
+                <div className="bg-grit-positive/10 rounded-xl p-3 lg:p-4 border border-grit-positive/30">
+                    <div className="flex items-start justify-between mb-2 lg:mb-3">
+                        <h3 className="font-semibold text-grit-text text-sm lg:text-base">{todayLog.title}</h3>
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1 text-grit-positive">
                                 <Clock className="w-4 h-4" />
@@ -137,16 +137,16 @@ export const TodayWorkout = ({ routine, todayLog, onComplete }: TodayWorkoutProp
     // Has routine for today
     if (routine) {
         return (
-            <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border-2 border-grit-accent/50 animate-fade-in backdrop-blur-xl">
-                <div className="flex items-center gap-2 mb-4">
-                    <Dumbbell className="w-5 h-5 text-grit-accent" />
-                    <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>
-                    <span className="text-sm text-grit-text-muted ml-auto">{dayName}</span>
+            <div className="bg-grit-surface dark:glass-card rounded-2xl p-4 lg:p-6 border-2 border-grit-accent/50 animate-fade-in backdrop-blur-xl">
+                <div className="flex items-center gap-2 mb-3 lg:mb-4">
+                    <Dumbbell className="w-4 h-4 lg:w-5 lg:h-5 text-grit-accent" />
+                    <h2 className="text-base lg:text-lg font-semibold text-grit-text">Today's Workout</h2>
+                    <span className="text-xs lg:text-sm text-grit-text-muted ml-auto">{dayName}</span>
                 </div>
 
-                <div className="bg-gradient-to-br from-grit-accent/10 to-grit-accent-dark/10 rounded-xl p-4 border border-grit-accent/30 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xl font-bold text-grit-text">{routine.title}</h3>
+                <div className="bg-gradient-to-br from-grit-accent/10 to-grit-accent-dark/10 rounded-xl p-3 lg:p-4 border border-grit-accent/30 mb-3 lg:mb-4">
+                    <div className="flex items-center justify-between mb-2 lg:mb-3">
+                        <h3 className="text-lg lg:text-xl font-bold text-grit-text">{routine.title}</h3>
                         <div className="flex items-center gap-3 text-sm">
                             {totalCalories > 0 && (
                                 <span className="flex items-center gap-1 text-orange-400">
@@ -266,18 +266,18 @@ export const TodayWorkout = ({ routine, todayLog, onComplete }: TodayWorkoutProp
 
     // Rest day or no routine set
     return (
-        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
-            <div className="flex items-center gap-2 mb-4">
-                <Coffee className="w-5 h-5 text-grit-text-muted" />
-                <h2 className="text-lg font-semibold text-grit-text">Today's Workout</h2>
-                <span className="text-sm text-grit-text-muted ml-auto">{dayName}</span>
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-4 lg:p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-3 lg:mb-4">
+                <Coffee className="w-4 h-4 lg:w-5 lg:h-5 text-grit-text-muted" />
+                <h2 className="text-base lg:text-lg font-semibold text-grit-text">Today's Workout</h2>
+                <span className="text-xs lg:text-sm text-grit-text-muted ml-auto">{dayName}</span>
             </div>
 
-            <div className="text-center py-6">
-                <p className="text-grit-text-muted mb-4">
+            <div className="text-center py-4 lg:py-6">
+                <p className="text-grit-text-muted mb-2 lg:mb-4 text-sm lg:text-base">
                     今日はスケジュールされたワークアウトはありません
                 </p>
-                <p className="text-sm text-grit-text-dim">
+                <p className="text-xs lg:text-sm text-grit-text-dim">
                     休息日としてゆっくりお過ごしください
                 </p>
             </div>

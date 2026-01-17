@@ -374,15 +374,19 @@ export function DashboardPage() {
         return (
             <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
                 <Header level={level} />
-                <main className="max-w-5xl mx-auto px-4 py-6">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                        <div className="md:col-span-3 space-y-6">
+                <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+                        {/* Main content - spans 2 columns on xl */}
+                        <div className="xl:col-span-2 space-y-4 lg:space-y-6">
                             <SkeletonSummaryCard />
-                            <SkeletonChart />
-                            <SkeletonChart />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                                <SkeletonChart />
+                                <SkeletonChart />
+                            </div>
                             <SkeletonHeatmap />
                         </div>
-                        <div className="md:col-span-2 space-y-6">
+                        {/* Sidebar */}
+                        <div className="space-y-4 lg:space-y-6">
                             <SkeletonHabits />
                             <SkeletonMeals />
                         </div>
@@ -396,8 +400,9 @@ export function DashboardPage() {
         <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
             <Header level={level} />
 
-            <main className="max-w-5xl mx-auto px-4 py-6">
-                <div className="hidden md:flex justify-end mb-6">
+            <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
+                {/* Desktop action button */}
+                <div className="hidden md:flex justify-end mb-4 lg:mb-6">
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-105 active:scale-95 transition-transform"
@@ -407,40 +412,52 @@ export function DashboardPage() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    <div className="md:col-span-3 space-y-6">
+                {/* Main Grid Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+
+                    {/* Left Column - Weight & Charts (spans 2 cols on xl) */}
+                    <div className="xl:col-span-2 space-y-4 lg:space-y-6">
+                        {/* Summary Card - full width */}
                         <SummaryCard
                             latestWeight={latestLog?.weight ?? null}
                             weightDiff={weightDiff}
                             targetWeight={profile?.target_weight ?? null}
                         />
 
-                        <WeeklyChart
-                            logs={weeklyLogs}
-                            targetWeight={profile?.target_weight}
-                        />
+                        {/* Charts - side by side on larger screens */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                            <WeeklyChart
+                                logs={weeklyLogs}
+                                targetWeight={profile?.target_weight}
+                            />
+                            <WeeklyReport
+                                logs={weeklyLogs}
+                                habits={dailyHabits}
+                            />
+                        </div>
 
-                        <WeeklyReport
-                            logs={weeklyLogs}
-                            habits={dailyHabits}
-                        />
-
-                        <ContributionHeatmap data={heatmapData} months={3} />
+                        {/* Heatmap - only visible on larger screens to save mobile space */}
+                        <div className="hidden md:block">
+                            <ContributionHeatmap data={heatmapData} months={3} />
+                        </div>
                     </div>
 
-                    <div className="md:col-span-2 space-y-6">
-
+                    {/* Right Column - Today's Activities */}
+                    <div className="space-y-4 lg:space-y-6">
+                        {/* Workout section */}
                         <TodayWorkout
                             routine={todayRoutine}
                             todayLog={todayWorkoutLog}
                             onComplete={handleSaveWorkout}
                         />
 
+                        {/* Habits - compact on mobile */}
                         <DailyHabits
                             habits={dailyHabits}
                             onToggle={handleToggleHabit}
                         />
 
+                        {/* Meals Dashboard */}
                         <MealDashboard
                             meals={displayedMeals}
                             favoriteMeals={favoriteMeals}
@@ -468,17 +485,24 @@ export function DashboardPage() {
                             todayDate={today}
                         />
 
-                        <RecentWorkouts logs={recentWorkouts} />
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => navigate('/stats')}
-                                className="flex-1 flex items-center justify-center gap-2 p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
-                            >
-                                <BarChart3 className="w-5 h-5 text-blue-500" />
-                                <span className="text-sm font-medium text-grit-text">詳細統計</span>
-                            </button>
+                        {/* Recent workouts - hidden on mobile */}
+                        <div className="hidden sm:block">
+                            <RecentWorkouts logs={recentWorkouts} />
                         </div>
+
+                        {/* Stats button */}
+                        <button
+                            onClick={() => navigate('/stats')}
+                            className="w-full flex items-center justify-center gap-2 p-3 lg:p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
+                        >
+                            <BarChart3 className="w-5 h-5 text-blue-500" />
+                            <span className="text-sm font-medium text-grit-text">詳細統計</span>
+                        </button>
+                    </div>
+
+                    {/* Mobile: Heatmap at bottom */}
+                    <div className="md:hidden">
+                        <ContributionHeatmap data={heatmapData} months={3} />
                     </div>
                 </div>
             </main>

@@ -119,19 +119,19 @@ export const DailyHabits = ({ habits, onToggle }: DailyHabitsProps) => {
     }, [completedCount, totalCount]);
 
     return (
-        <div className="bg-grit-surface dark:glass-card rounded-2xl p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
-            <div className="flex items-center justify-between mb-4">
+        <div className="bg-grit-surface dark:glass-card rounded-2xl p-4 lg:p-6 border border-grit-border animate-fade-in backdrop-blur-xl">
+            <div className="flex items-center justify-between mb-3 lg:mb-4">
                 <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-grit-accent" />
-                    <h2 className="text-lg font-semibold text-grit-text">今日のタスク</h2>
+                    <Zap className="w-4 h-4 lg:w-5 lg:h-5 text-grit-accent" />
+                    <h2 className="text-base lg:text-lg font-semibold text-grit-text">今日のタスク</h2>
                 </div>
-                <span className="text-sm font-medium text-grit-text-muted">
+                <span className="text-xs lg:text-sm font-medium text-grit-text-muted">
                     {completedCount}/{totalCount}
                 </span>
             </div>
 
             {/* Progress bar */}
-            <div className="h-1.5 bg-grit-border rounded-full mb-6 overflow-hidden">
+            <div className="h-1 lg:h-1.5 bg-grit-border rounded-full mb-4 lg:mb-6 overflow-hidden">
                 <div
                     className="h-full bg-gradient-to-r from-grit-accent to-grit-accent-dark rounded-full transition-all duration-500"
                     style={{ width: `${progress}%` }}
@@ -139,7 +139,7 @@ export const DailyHabits = ({ habits, onToggle }: DailyHabitsProps) => {
             </div>
 
             {habits.length > 0 ? (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-3">
                     {habits.map(habitStatus => (
                         <HabitItem
                             key={habitStatus.habit.$id}
@@ -149,15 +149,15 @@ export const DailyHabits = ({ habits, onToggle }: DailyHabitsProps) => {
                     ))}
                 </div>
             ) : (
-                <div className="py-8 text-center text-grit-text-muted">
+                <div className="py-6 lg:py-8 text-center text-grit-text-muted">
                     <p>タスクがありません</p>
                     <p className="text-sm mt-1">設定から追加してください</p>
                 </div>
             )}
 
             {totalCount > 0 && completedCount === totalCount && (
-                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-grit-accent/20 to-grit-accent-dark/20 border border-grit-accent/30">
-                    <p className="text-center text-grit-accent font-semibold">
+                <div className="mt-3 lg:mt-4 p-3 lg:p-4 rounded-xl bg-gradient-to-r from-grit-accent/20 to-grit-accent-dark/20 border border-grit-accent/30">
+                    <p className="text-center text-grit-accent font-semibold text-sm lg:text-base">
                         🎉 全タスク完了！素晴らしい！
                     </p>
                 </div>
