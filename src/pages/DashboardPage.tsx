@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { SummaryCard } from '../components/SummaryCard';
 import { WeeklyChart } from '../components/WeeklyChart';
@@ -14,6 +13,7 @@ import { RecentWorkouts } from '../components/RecentWorkouts';
 import { MealDashboard } from '../components/MealDashboard';
 import { MealModal } from '../components/MealModal';
 import { FavoriteMealSelector } from '../components/FavoriteMealSelector';
+import { StatsSummary } from '../components/StatsSummary';
 
 
 import { InitialSetupWizard, useInitialSetup } from '../components/InitialSetupWizard';
@@ -24,7 +24,7 @@ import {
     SkeletonHeatmap,
     SkeletonMeals,
 } from '../components/Skeleton';
-import { Plus, BarChart3 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getOrCreateProfile,
@@ -61,7 +61,6 @@ import { getTodayString, getEffectiveDayOfWeek } from '../lib/dateUtils';
 
 export function DashboardPage() {
     const { user } = useAuth();
-    const navigate = useNavigate();
 
     // Initial setup wizard
     const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup(user?.$id);
@@ -440,6 +439,13 @@ export function DashboardPage() {
                         <div className="hidden md:block">
                             <ContributionHeatmap data={heatmapData} months={3} />
                         </div>
+
+                        {/* Stats Summary - only visible on larger screens */}
+                        {user && (
+                            <div className="hidden md:block">
+                                <StatsSummary userId={user.$id} />
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column - Today's Activities */}
@@ -489,20 +495,12 @@ export function DashboardPage() {
                         <div className="hidden sm:block">
                             <RecentWorkouts logs={recentWorkouts} />
                         </div>
-
-                        {/* Stats button */}
-                        <button
-                            onClick={() => navigate('/stats')}
-                            className="w-full flex items-center justify-center gap-2 p-3 lg:p-4 rounded-xl bg-grit-surface-hover hover:bg-grit-border transition-colors group"
-                        >
-                            <BarChart3 className="w-5 h-5 text-blue-500" />
-                            <span className="text-sm font-medium text-grit-text">詳細統計</span>
-                        </button>
                     </div>
 
-                    {/* Mobile: Heatmap at bottom */}
-                    <div className="md:hidden">
+                    {/* Mobile: Heatmap and Stats at bottom */}
+                    <div className="md:hidden space-y-4">
                         <ContributionHeatmap data={heatmapData} months={3} />
+                        {user && <StatsSummary userId={user.$id} />}
                     </div>
                 </div>
             </main>
