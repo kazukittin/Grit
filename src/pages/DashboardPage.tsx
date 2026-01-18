@@ -34,7 +34,6 @@ import {
     getHabits,
     getHabitLogsForDate,
     toggleHabitLog,
-    getRecordedDaysCount,
     getHeatmapData,
     initializeDefaultHabits,
     getWorkoutRoutineForDay,
@@ -72,7 +71,6 @@ export function DashboardPage() {
     const [weeklyLogs, setWeeklyLogs] = useState<WeightLog[]>([]);
     const [dailyHabits, setDailyHabits] = useState<DailyHabitStatus[]>([]);
     const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
-    const [level, setLevel] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Workout state
@@ -170,7 +168,6 @@ export function DashboardPage() {
                 weeklyData,
                 habits,
                 habitLogs,
-                recordedDays,
                 heatmap,
                 routine,
                 workoutLog,
@@ -182,7 +179,6 @@ export function DashboardPage() {
                 getWeightLogsInRange(user.$id, weekAgo.toISOString().split('T')[0], today),
                 getHabits(user.$id),
                 getHabitLogsForDate(user.$id, today),
-                getRecordedDaysCount(user.$id),
                 getHeatmapData(user.$id, threeMonthsAgo.toISOString().split('T')[0], today),
                 getWorkoutRoutineForDay(user.$id, dayOfWeek),
                 getWorkoutLogForDate(user.$id, today),
@@ -212,7 +208,6 @@ export function DashboardPage() {
             setDailyHabits(dailyHabitStatuses);
 
             // Set remaining data
-            setLevel(Math.floor(recordedDays / 5) + 1);
             setHeatmapData(heatmap);
             setTodayRoutine(routine);
             setTodayWorkoutLog(workoutLog);
@@ -372,7 +367,7 @@ export function DashboardPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
-                <Header level={level} />
+                <Header />
                 <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
                         {/* Main content - spans 2 columns on xl */}
@@ -397,7 +392,7 @@ export function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-grit-bg pb-24 md:pb-6">
-            <Header level={level} />
+            <Header />
 
             <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
                 {/* Desktop action button */}

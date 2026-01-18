@@ -1,47 +1,23 @@
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Settings, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Settings } from 'lucide-react';
 
 interface HeaderProps {
-    level: number;
+    level?: number;
 }
 
-export const Header = ({ level }: HeaderProps) => {
+export const Header = ({ }: HeaderProps) => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
 
     return (
         <header className="sticky top-0 z-40 bg-grit-bg/80 dark:bg-grit-bg/60 backdrop-blur-2xl border-b border-grit-border dark:border-grit-glass-border">
-            <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">
-                    <span className="text-grit-text">Grit</span>
-                </h1>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-grit-surface px-3 py-1.5 rounded-full border border-grit-border">
-                        <Trophy className="w-4 h-4 text-grit-accent" />
-                        <span className="text-sm font-semibold text-grit-text">
-                            Lv.{level}
-                        </span>
-                    </div>
-                    <button
-                        onClick={toggleTheme}
-                        className="w-9 h-9 rounded-full bg-grit-surface border border-grit-border flex items-center justify-center hover:bg-grit-surface-hover transition-colors"
-                        aria-label={theme === 'light' ? 'ダークモードに切り替え' : 'ライトモードに切り替え'}
-                    >
-                        {theme === 'light' ? (
-                            <Moon className="w-4 h-4 text-grit-text-muted" />
-                        ) : (
-                            <Sun className="w-4 h-4 text-grit-accent" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => navigate('/settings')}
-                        className="w-9 h-9 rounded-full bg-grit-surface border border-grit-border flex items-center justify-center hover:bg-grit-surface-hover transition-colors"
-                        aria-label="設定"
-                    >
-                        <Settings className="w-4 h-4 text-grit-text-muted" />
-                    </button>
-                </div>
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 lg:py-4 flex items-center justify-end">
+                <button
+                    onClick={() => navigate('/settings')}
+                    className="w-9 h-9 rounded-full bg-grit-surface border border-grit-border flex items-center justify-center hover:bg-grit-surface-hover transition-colors"
+                    aria-label="設定"
+                >
+                    <Settings className="w-4 h-4 text-grit-text-muted" />
+                </button>
             </div>
         </header>
     );

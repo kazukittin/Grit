@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle, Calculator, Ruler, Star, Package, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
+import { ArrowLeft, Target, Save, Plus, Trash2, Edit3, Check, X, LogOut, Loader2, Flame, Beef, Droplets, Wheat, RefreshCw, AlertTriangle, Calculator, Ruler, Star, Package, ChevronDown, ChevronUp, Settings2, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { WorkoutScheduleSettings } from '../components/WorkoutScheduleSettings';
 import { DataExportImport } from '../components/DataExport';
 import { NotificationSettings } from '../components/NotificationSettings';
@@ -30,6 +31,7 @@ import type { Profile, Habit, WorkoutRoutine, FavoriteMeal, MealPreset, MealPres
 export function SettingsPage() {
     const navigate = useNavigate();
     const { user, signOut, deleteAccount } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const { resetSetup } = useInitialSetup();
 
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -276,6 +278,39 @@ export function SettingsPage() {
             </header>
 
             <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
+                {/* Theme Toggle */}
+                <section className="bg-grit-surface rounded-2xl p-5 border border-grit-border">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {theme === 'light' ? (
+                                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                    <Sun className="w-5 h-5 text-yellow-500" />
+                                </div>
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                    <Moon className="w-5 h-5 text-blue-400" />
+                                </div>
+                            )}
+                            <div>
+                                <h2 className="font-semibold text-grit-text">外観</h2>
+                                <p className="text-sm text-grit-text-muted">
+                                    {theme === 'light' ? 'ライトモード' : 'ダークモード'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={toggleTheme}
+                            className={`relative w-14 h-8 rounded-full transition-colors ${theme === 'dark' ? 'bg-blue-500' : 'bg-grit-border'
+                                }`}
+                        >
+                            <div
+                                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${theme === 'dark' ? 'translate-x-7' : 'translate-x-1'
+                                    }`}
+                            />
+                        </button>
+                    </div>
+                </section>
+
                 {/* Initial Wizard Settings - Collapsible */}
                 <section className="bg-grit-surface rounded-2xl border border-grit-border overflow-hidden">
                     {/* Header - Click to toggle */}
