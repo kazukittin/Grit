@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '../components/Header';
 import { SummaryCard } from '../components/SummaryCard';
-import { WeeklyChart } from '../components/WeeklyChart';
-import { WeeklyReport } from '../components/WeeklyReport';
 import { DailyHabits } from '../components/DailyHabits';
 import { ContributionHeatmap } from '../components/ContributionHeatmap';
 import { RecordModal } from '../components/RecordModal';
@@ -418,29 +416,20 @@ export function DashboardPage() {
                             targetWeight={profile?.target_weight ?? null}
                         />
 
-                        {/* Charts - side by side on larger screens */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                            <WeeklyChart
-                                logs={weeklyLogs}
+                        {/* Stats Summary */}
+                        {user && (
+                            <StatsSummary
+                                userId={user.$id}
+                                weeklyLogs={weeklyLogs}
+                                habits={dailyHabits}
                                 targetWeight={profile?.target_weight}
                             />
-                            <WeeklyReport
-                                logs={weeklyLogs}
-                                habits={dailyHabits}
-                            />
-                        </div>
+                        )}
 
                         {/* Heatmap - only visible on larger screens to save mobile space */}
                         <div className="hidden md:block">
                             <ContributionHeatmap data={heatmapData} months={3} />
                         </div>
-
-                        {/* Stats Summary - only visible on larger screens */}
-                        {user && (
-                            <div className="hidden md:block">
-                                <StatsSummary userId={user.$id} />
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Column - Today's Activities */}
@@ -495,7 +484,6 @@ export function DashboardPage() {
                     {/* Mobile: Heatmap and Stats at bottom */}
                     <div className="md:hidden space-y-4">
                         <ContributionHeatmap data={heatmapData} months={3} />
-                        {user && <StatsSummary userId={user.$id} />}
                     </div>
                 </div>
             </main>
