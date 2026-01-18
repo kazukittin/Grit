@@ -1,4 +1,3 @@
-import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,10 +8,6 @@ import { MagicLinkCallbackPage } from './pages/MagicLinkCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Loader2 } from 'lucide-react';
-
-// Lazy load less frequently accessed pages
-const StatsPage = lazy(() => import('./pages/StatsPage').then(m => ({ default: m.StatsPage })));
-
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -97,16 +92,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <SettingsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stats"
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingFallback />}>
-              <StatsPage />
-            </Suspense>
           </ProtectedRoute>
         }
       />
