@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { SummaryCard } from '../components/SummaryCard';
 import { DailyHabits } from '../components/DailyHabits';
@@ -22,7 +23,7 @@ import {
     SkeletonHeatmap,
     SkeletonMeals,
 } from '../components/Skeleton';
-import { Plus } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     getOrCreateProfile,
@@ -58,6 +59,7 @@ import { getTodayString, getEffectiveDayOfWeek } from '../lib/dateUtils';
 
 export function DashboardPage() {
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     // Initial setup wizard
     const { showSetup, checkSetupStatus, completeSetup, skipSetup } = useInitialSetup(user?.$id);
@@ -393,14 +395,21 @@ export function DashboardPage() {
             <Header />
 
             <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
-                {/* Desktop action button */}
-                <div className="hidden md:flex justify-end mb-4 lg:mb-6">
+                {/* Desktop action buttons */}
+                <div className="hidden md:flex justify-end gap-3 mb-4 lg:mb-6">
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-grit-accent to-grit-accent-dark text-white font-semibold rounded-xl shadow-lg shadow-grit-accent/30 hover:scale-105 active:scale-95 transition-transform"
                     >
                         <Plus className="w-5 h-5" strokeWidth={2.5} />
                         今日の記録
+                    </button>
+                    <button
+                        onClick={() => navigate('/settings')}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-grit-surface border border-grit-border text-grit-text font-semibold rounded-xl hover:bg-grit-surface-hover hover:scale-105 active:scale-95 transition-all"
+                    >
+                        <Settings className="w-5 h-5" />
+                        設定
                     </button>
                 </div>
 
