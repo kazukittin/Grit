@@ -8,7 +8,10 @@ import {
     Activity,
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     BarChart3,
+    Calendar,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -34,17 +37,29 @@ export const StatsSummary = ({ userId }: StatsSummaryProps) => {
     const [expanded, setExpanded] = useState(false);
     const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
     const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
+    const [allWeightLogs, setAllWeightLogs] = useState<WeightLog[]>([]);
+    const [allWorkoutLogs, setAllWorkoutLogs] = useState<WorkoutLog[]>([]);
+
+    // Month navigation state
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                // Load last 3 months of data
+                // Load last 12 months of data for monthly analysis
                 const [weights, workouts] = await Promise.all([
-                    getWeightLogs(userId, 100),
-                    getWorkoutLogs(userId, 100),
+                    getWeightLogs(userId, 365),
+                    getWorkoutLogs(userId, 365),
                 ]);
 
+                setAllWeightLogs(weights);
+                setAllWorkoutLogs(workouts);
+
+                // Filter for current 3 months for summary
                 const threeMonthsAgo = new Date();
                 threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
                 const startStr = threeMonthsAgo.toISOString().split('T')[0];
@@ -61,7 +76,85 @@ export const StatsSummary = ({ userId }: StatsSummaryProps) => {
         loadData();
     }, [userId]);
 
-    // Calculate summary stats
+    // Calculate monthly stats for all available months
+    const monthlyData = useMemo(() => {
+        const monthlyMap = new Map<string, { weights: number[]; workouts: number; workoutMins: number }>();
+
+        allWeightLogs.forEach((w) => {
+            const month = w.date.substring(0, 7);
+            if (!monthlyMap.has(month)) {
+                monthlyMap.set(month, { weights: [], workouts: 0, workoutMins: 0 });
+            }
+            monthlyMap.get(month)!.weights.push(w.weight);
+        });
+
+        allWorkoutLogs.forEach((w) => {
+            const month = w.date.substring(0, 7);
+            if (!monthlyMap.has(month)) {
+                monthlyMap.set(month, { weights: [], workouts: 0, workoutMins: 0 });
+            }
+            const data = monthlyMap.get(month)!;
+            data.workouts++;
+            data.workoutMins += w.duration_min || 0;
+        });
+
+        const months = Array.from(monthlyMap.entries())
+            .map(([month, data]) => ({
+                month,
+                avgWeight: data.weights.length > 0 ? data.weights.reduce((a, b) => a + b, 0) / data.weights.length : null,
+                minWeight: data.weights.length > 0 ? Math.min(...data.weights) : null,
+                maxWeight: data.weights.length > 0 ? Math.max(...data.weights) : null,
+                totalWorkouts: data.workouts,
+                totalWorkoutMinutes: data.workoutMins,
+                weightChange: null as number | null,
+            }))
+            .sort((a, b) => a.month.localeCompare(b.month));
+
+        // Calculate weight change from previous month
+        for (let i = 1; i < months.length; i++) {
+            if (months[i].avgWeight !== null && months[i - 1].avgWeight !== null) {
+                months[i].weightChange = months[i].avgWeight! - months[i - 1].avgWeight!;
+            }
+        }
+
+        return months;
+    }, [allWeightLogs, allWorkoutLogs]);
+
+    // Get available months for navigation
+    const availableMonths = useMemo(() => {
+        return monthlyData.map(m => m.month);
+    }, [monthlyData]);
+
+    // Get current month's stats
+    const currentMonthStats = useMemo(() => {
+        return monthlyData.find(m => m.month === selectedMonth) || null;
+    }, [monthlyData, selectedMonth]);
+
+    // Navigate months
+    const goToPreviousMonth = () => {
+        const currentIndex = availableMonths.indexOf(selectedMonth);
+        if (currentIndex > 0) {
+            setSelectedMonth(availableMonths[currentIndex - 1]);
+        }
+    };
+
+    const goToNextMonth = () => {
+        const currentIndex = availableMonths.indexOf(selectedMonth);
+        if (currentIndex < availableMonths.length - 1) {
+            setSelectedMonth(availableMonths[currentIndex + 1]);
+        }
+    };
+
+    const canGoPrevious = availableMonths.indexOf(selectedMonth) > 0;
+    const canGoNext = availableMonths.indexOf(selectedMonth) < availableMonths.length - 1;
+
+    // Format month for display
+    const formatMonth = (monthStr: string) => {
+        const [year, month] = monthStr.split('-');
+        return `${year}年${parseInt(month)}月`;
+    };
+
+    // Calculate summary stats (3 months)
     const summaryStats = useMemo(() => {
         if (weightLogs.length === 0) {
             return { totalLoss: 0, avgWeight: 0, trend: 'neutral' as const, workoutCount: 0, totalWorkoutMins: 0 };
@@ -84,7 +177,7 @@ export const StatsSummary = ({ userId }: StatsSummaryProps) => {
     const weightChartData = useMemo(() => {
         return [...weightLogs]
             .sort((a, b) => a.date.localeCompare(b.date))
-            .slice(-30) // Last 30 records for cleaner display
+            .slice(-30)
             .map((log) => ({
                 date: log.date.substring(5),
                 weight: log.weight,
@@ -201,9 +294,86 @@ export const StatsSummary = ({ userId }: StatsSummaryProps) => {
             {/* Expanded Content */}
             {expanded && (
                 <div className="px-4 lg:px-5 pb-4 lg:pb-5 space-y-4 border-t border-grit-border pt-4">
+                    {/* Monthly Summary with Navigation */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-grit-accent" />
+                                <h3 className="text-sm font-medium text-grit-text">月別サマリー</h3>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={goToPreviousMonth}
+                                    disabled={!canGoPrevious}
+                                    className="p-1.5 rounded-lg hover:bg-grit-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft className="w-4 h-4 text-grit-text-muted" />
+                                </button>
+                                <span className="text-sm font-medium text-grit-text min-w-[90px] text-center">
+                                    {formatMonth(selectedMonth)}
+                                </span>
+                                <button
+                                    onClick={goToNextMonth}
+                                    disabled={!canGoNext}
+                                    className="p-1.5 rounded-lg hover:bg-grit-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight className="w-4 h-4 text-grit-text-muted" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {currentMonthStats ? (
+                            <div className="bg-grit-bg rounded-xl p-4 space-y-3">
+                                {/* Weight Stats */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-grit-text-muted">平均体重</span>
+                                    <div className="text-right">
+                                        <span className="text-lg font-bold text-grit-text">
+                                            {currentMonthStats.avgWeight?.toFixed(1) ?? '--'} kg
+                                        </span>
+                                        {currentMonthStats.weightChange !== null && (
+                                            <span className={`ml-2 text-xs font-medium ${currentMonthStats.weightChange < 0 ? 'text-green-500' : currentMonthStats.weightChange > 0 ? 'text-red-500' : 'text-grit-text-muted'}`}>
+                                                {currentMonthStats.weightChange > 0 ? '+' : ''}{currentMonthStats.weightChange.toFixed(1)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Weight Range */}
+                                {currentMonthStats.minWeight !== null && currentMonthStats.maxWeight !== null && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-grit-text-muted">体重範囲</span>
+                                        <span className="text-sm text-grit-text">
+                                            {currentMonthStats.minWeight.toFixed(1)} - {currentMonthStats.maxWeight.toFixed(1)} kg
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Workout Stats */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-grit-text-muted">ワークアウト</span>
+                                    <span className="text-sm font-medium text-grit-text">
+                                        {currentMonthStats.totalWorkouts} 回
+                                        {currentMonthStats.totalWorkoutMinutes > 0 && (
+                                            <span className="text-grit-text-muted ml-1">
+                                                ({currentMonthStats.totalWorkoutMinutes >= 60
+                                                    ? `${Math.round(currentMonthStats.totalWorkoutMinutes / 60)}時間`
+                                                    : `${currentMonthStats.totalWorkoutMinutes}分`})
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-grit-bg rounded-xl p-4 text-center text-sm text-grit-text-muted">
+                                この月のデータはありません
+                            </div>
+                        )}
+                    </div>
+
                     {/* Weight Trend Chart */}
                     <div>
-                        <h3 className="text-sm font-medium text-grit-text mb-3">体重推移</h3>
+                        <h3 className="text-sm font-medium text-grit-text mb-3">体重推移（3ヶ月）</h3>
                         {weightChartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={180}>
                                 <AreaChart data={weightChartData}>
